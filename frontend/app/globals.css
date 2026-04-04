@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Theme colors similar to Finclix */
+  --color-theme1: #ffb400; /* yellow accent */
+  --color-theme-white: #ffffff;
+  --color-theme-black: #000000;
+  --color-headings: #171717;
+  --color-dark1: #0a0a0a;
+  --color-text: #999999;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* =======================
+   Animations
+======================= */
+@layer utilities {
+  /* Custom spin speeds */
+  .animate-spin-slow {
+    animation: spin 30s linear infinite;
+  }
+  .animate-spin-medium {
+    animation: spin 5s linear infinite;
+  }
+
+  /* Fade In Up (wow.js replacement) */
+  .fade-in-up {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 0.8s forwards;
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Optional: add delay utilities (wow-delay mimic) */
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+  .delay-400 {
+    animation-delay: 0.4s;
+  }@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Theme colors similar to Finclix */
+  --color-theme1: #ffb400; /* yellow accent */
+  --color-theme-white: #ffffff;
+  --color-theme-black: #000000;
+  --color-headings: #171717;
+  --color-dark1: #0a0a0a;
+  --color-text: #999999;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* =======================
+   Animations & Custom Utilities
+======================= */
+@layer utilities {
+
+  /* ===== Spin Animations ===== */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin 30s linear infinite;
+  }
+
+  .animate-spin-medium {
+    animation: spin 5s linear infinite;
+  }
+
+  /* ===== Fade In Up ===== */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  /* ===== Animation Delays ===== */
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+  .delay-400 {
+    animation-delay: 0.4s;
+  }
+  .delay-600 {
+    animation-delay: 0.6s;
+  }
+
+  /* ===== Optional: Add your previously defined animations ===== */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .spin-slow-custom {
+    animation: spin-slow 12s linear infinite;
+  }
+
+  @keyframes rotate45 {
+    0% { transform: rotate(-10deg); }
+    100% { transform: rotate(45deg); }
+  }
+
+  .rotate-45-anim {
+    animation: rotate45 3s linear infinite alternate;
+  }
+}
+  .delay-600 {
+    animation-delay: 0.6s;
+  }
+}
