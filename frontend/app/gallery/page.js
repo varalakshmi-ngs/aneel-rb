@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import GalleryList from "@/components/GalleryList";
 import ContactSection from "@/components/Home/ContactSection";
 // import CustomHeroSection from "@/utils/CustomHeroSection";

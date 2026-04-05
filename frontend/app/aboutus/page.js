@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // import Testimonials from "@/components/AboutUs/Testimonials";
 // import WhatWeDo from "@/components/AboutUs/WhatWeDo";
 import BusinessJourney from "@/components/Home/BusinessJourney";
@@ -8,7 +9,7 @@ import AboutPage from "@/components/AboutUs/AboutUs";
 import ApproachSection from "@/components/AboutUs/ApproachSection";
 import TimelineSection from "@/components/AboutUs/TimelineSection";
 import OurVision from "@/components/AboutUs/OurVision";
-import Aboutcard from "@/components/AboutUs/Aboutcard";
+// import Aboutcard from "@/components/AboutUs/Aboutcard";
 import React from "react";
 import { getApiBase } from "@/utils/apiBase";
 

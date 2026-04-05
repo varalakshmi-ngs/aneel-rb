@@ -48,6 +48,7 @@ export default async function MemberProfilePage({ searchParams }) {
                 <p className="mt-2 text-gray-600">Your passcode is active and this is your profile page.</p>
               </div>
               {member.photo_url && (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={member.photo_url}
                   alt={member.name}

@@ -1,15 +1,16 @@
 import Testimonials from "@/components/AboutUs/Testimonials";
+export const dynamic = "force-dynamic";
 // import WhatWeDo from "@/components/AboutUs/WhatWeDo";
 import BusinessJourney from "@/components/Home/BusinessJourney";
 // import ContactSection from "@/components/Home/ContactSection";
-import TeamSection from "@/components/Home/TeamSection";
+// import TeamSection from "@/components/Home/TeamSection";
 // import CustomHeroSection from "@/utils/CustomHeroSection";
 import Homepage from "@/components/Home/Homepage";
 import Homepage2 from "@/components/Home/Homepage2";
 import ChurchTimings from "@/components/ChurchTimings";
-import HomepageEvent from "@/components/HomepageEvent";
+// import HomepageEvent from "@/components/HomepageEvent";
 import EventsList from "@/components/Events/Events";
-import Ourevents from "@/components/Events/Ourevents";
+// import Ourevents from "@/components/Events/Ourevents";
 
 import React from "react";
 

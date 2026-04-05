@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { adminLogin } from '@/utils/adminApi';
 import PccRegistrationForm from '@/components/PccRegistrationForm';
 
@@ -192,9 +193,9 @@ export default function AdminLogin() {
 
                     <div className="pt-8 text-center border-t border-slate-100 mt-8">
                       <p className="text-slate-500 text-sm mb-2">Need to return to main site?</p>
-                      <a href="/" className="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
+                      <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline">
                         Go to Home
-                      </a>
+                      </Link>
                     </div>
                   </form>
                 )}

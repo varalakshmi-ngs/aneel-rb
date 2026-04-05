@@ -2,6 +2,7 @@
 // import FaqSection from "@/components/Home/FaqSection";
 // import ServicesFinal from "@/components/Events/ServicesFinal";
 // import CustomHeroSection from "@/utils/CustomHeroSection";
+export const dynamic = "force-dynamic";
 import EventsList from "@/components/Events/Events";
 import Ourevents from "@/components/Events/Ourevents";
 import React from "react";

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import MembersPage from "@/components/Members";
 import OurMembers  from "@/components/OurMembers";
 

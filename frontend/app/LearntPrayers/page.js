@@ -92,7 +92,7 @@ export default function LearntPrayers() {
               {/* Card Body */}
               <div className="p-8 md:p-12 flex-1 flex flex-col relative">
                 {/* Decorative quote mark */}
-                <div className="absolute top-6 left-6 text-7xl text-gray-100 font-serif leading-none select-none z-0">"</div>
+                <div className="absolute top-6 left-6 text-7xl text-gray-100 font-serif leading-none select-none z-0">&quot;</div>
                 
                 <h3 className="text-2xl font-bold text-[#022147] mb-6 relative z-10">{prayer.title}</h3>
                 <p className="text-gray-600 leading-relaxed text-lg flex-1 relative z-10 font-serif italic text-justify">

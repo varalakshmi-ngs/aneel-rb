@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // import WhatWeDo from "@/components/AboutUs/WhatWeDo";
 import PccMembers from "@/components/PccMembers";
 import BusinessJourney from "@/components/Home/BusinessJourney";
