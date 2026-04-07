@@ -28,6 +28,11 @@ const allowedOrigins = (FRONTEND_URLS || FRONTEND_URL)
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+// Always allow the production frontend
+if (!allowedOrigins.includes('https://robochurch.nuhvin.com')) {
+  allowedOrigins.push('https://robochurch.nuhvin.com');
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
