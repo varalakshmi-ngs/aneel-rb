@@ -6,7 +6,7 @@ export default function Homepage({ heroSection = {} }) {
 
   const hero = {
     title: heroSection.title || "“శాంతిని కలిగించే వారు ధన్యులు.”",
-    subtitle: heroSection.subtitle || "Our community grows in faith through worship, fellowship, and service.",
+    subtitle: heroSection.subtitle || "my community grows in faith through worship, fellowship, and service.",
     description: heroSection.description || "Join us for weekly programs, events, and ministry opportunities designed to build up every believer.",
     image_url: heroSection.image_url || "/images/chruch-07.jpg",
   };

@@ -49,15 +49,7 @@ export default async function page() {
 
   return (
     <div>
-      {/* <CustomHeroSection
-        backgroundImage="/images/office-team.jpg"
-        headingLines={[
-          "Empowering Businesses Globally",
-        ]}
-        subHeadingLines={[
-          "RoboOnline delivers cutting-edge software, AI, and IT services that drive growth.",
-        ]}
-      /> */}
+      
       <Homepage heroSection={heroSection} />
       <BusinessJourney aboutSection={aboutSection} />
       <Homepage2 />
