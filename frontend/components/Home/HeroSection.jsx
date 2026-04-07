@@ -130,7 +130,7 @@ function LeftContent({ heading }) {
 
       {/* Button */}
       <div className="w-full flex lg:block items-center justify-center lg:justify-start mt-6">
-        <button className="relative w-[250px] overflow-hidden rounded-full group bg-[#ffffff1a] cursor-pointer">
+        <button className="relative w-[200px] sm:w-[250px] overflow-hidden rounded-full group bg-[#ffffff1a] cursor-pointer">
           <span className="absolute inset-0 bg-[#C8F169] -translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out"></span>
 
           <span className="relative z-10 flex items-center justify-center p-4 text-white group-hover:text-black transition-colors duration-500">

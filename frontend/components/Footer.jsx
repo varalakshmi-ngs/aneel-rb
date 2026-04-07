@@ -47,27 +47,27 @@ export default function Footer() {
 
             {/* === Right: Jesus Image === */}
             <div className="flex-1 flex justify-center sm:justify-end">
-              <Image
-                src="/images/jesusimage.png"
-                alt="Jesus Image"
-                width={460}
-                height={460}
-                className="object-contain mt-4 md:-mt-10 lg:-mt-16"
-              />
+              <div className="w-full max-w-[220px] sm:max-w-[260px] lg:max-w-[300px]">
+                <Image
+                  src="/images/jesusimage.png"
+                  alt="Jesus Image"
+                  width={460}
+                  height={460}
+                  className="object-contain mt-4 md:-mt-10 lg:-mt-16"
+                />
+              </div>
             </div>
           </div>
 
           {/* === Quote (Below All Layouts) === */}
-          {/* === Quote (Below All Layouts) === */}
           <div className="mt-10 w-full flex justify-center">
-            <p className="text-[#022147] font-bold italic text-4xl md:text-5xl lg:text-6xl tracking-[0.1em] text-center w-full">
-              JESUS WILL SAVE US 
+            <p className="text-[#022147] font-bold italic text-2xl md:text-4xl lg:text-5xl tracking-[0.1em] text-center w-full">
+              JESUS WILL SAVE US
             </p>
           </div>
 
-
           {/* Copyright */}
-          <div className="mt-12 border-t border-gray-600 pt-6 text-center text-[#022147]">
+          <div className="mt-12 border-t border-gray-600 pt-6 text-center text-[#022147] text-sm sm:text-base">
             Copyright © 2025 Finclix. All Rights Reserved
           </div>
         </div>

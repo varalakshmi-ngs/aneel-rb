@@ -1,15 +1,18 @@
 export const dynamic = "force-dynamic";
 // import Testimonials from "@/components/AboutUs/Testimonials";
 // import WhatWeDo from "@/components/AboutUs/WhatWeDo";
-import BusinessJourney from "@/components/Home/BusinessJourney";
+// import BusinessJourney from "@/components/Home/BusinessJourney";
 // import ContactSection from "@/components/Home/ContactSection";
 // import TeamSection from "@/components/Home/TeamSection";
 // import CustomHeroSection from "@/utils/CustomHeroSection";
 import AboutPage from "@/components/AboutUs/AboutUs";
 import ApproachSection from "@/components/AboutUs/ApproachSection";
-import TimelineSection from "@/components/AboutUs/TimelineSection";
+// import TimelineSection from "@/components/AboutUs/TimelineSection";
 import OurVision from "@/components/AboutUs/OurVision";
 // import Aboutcard from "@/components/AboutUs/Aboutcard";
+import Pastorinfo from "@/components/AboutUs/Pastorinfo";
+import History from "@/components/AboutUs/History";
+
 import React from "react";
 import { getApiBase } from "@/utils/apiBase";
 
@@ -48,9 +51,11 @@ export default async function page() {
       <Testimonials />
       <ContactSection /> */}
       <AboutPage/>
-      <BusinessJourney aboutSection={aboutSection} />
+      <Pastorinfo/>
+      <History/>
+      {/* <BusinessJourney aboutSection={aboutSection} /> */}
       {/* <Aboutcard/> */}
-      <TimelineSection/>
+      {/* <TimelineSection/> */}
       <OurVision/>
       <ApproachSection/>
     </div>

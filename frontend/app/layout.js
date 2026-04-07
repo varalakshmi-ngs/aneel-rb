@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
         {/* <TopHeader /> */}
         <AdminTopBarGate />
         <Header />
-        <main className="pt-[80px]">{/* Add top padding to avoid overlap with top bar (70px) */}
+        <main className="pt-[100px] sm:pt-[90px] md:pt-[80px]">{/* Add top padding to avoid overlap with top bar (70px) */}
           {children}
         </main>
         <Footer />

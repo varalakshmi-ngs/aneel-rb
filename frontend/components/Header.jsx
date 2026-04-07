@@ -77,7 +77,7 @@ export default function Header() {
             </button>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-6 items-center relative">
+            <nav className="hidden md:flex flex-wrap gap-4 items-center relative">
               {navItems.map((item) =>
                 item.dropdown ? (
                   <div
@@ -220,7 +220,7 @@ export default function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="text-[#022147] hover:text-[#F74F22] text-lg transition duration-300"
+                    className="text-[#022147] hover:text-[#F74F22] text-base transition duration-300"
                     onClick={() => setIsOpen(false)}
                   >
                     {item.name}
@@ -230,7 +230,7 @@ export default function Header() {
 
               <Link
                 href="/contactus"
-                className="mt-3 inline-block border-2 border-[#F74F22] bg-[#022147] text-white px-6 py-2 rounded-md font-semibold hover:bg-[#F74F22] hover:text-white hover:shadow-[0_0_20px_rgba(247,79,34,0.4)] transition-all duration-300"
+                className="mt-3 inline-block border-2 border-[#F74F22] bg-[#022147] text-white px-5 py-2 rounded-md font-semibold text-sm sm:text-base hover:bg-[#F74F22] hover:text-white hover:shadow-[0_0_20px_rgba(247,79,34,0.4)] transition-all duration-300"
                 onClick={() => setIsOpen(false)}
               >
                 Get in Touch With Ministry
