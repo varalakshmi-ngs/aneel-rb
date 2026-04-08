@@ -66,6 +66,24 @@ app.use(
 );
 app.use(`/uploads`, express.static(path.join(__dirname, UPLOAD_DIR)));
 
+function normalizeBodyUrls(body, req) {
+  if (Array.isArray(body)) {
+    return body.map((item) => normalizeBodyUrls(item, req));
+  }
+  if (body && typeof body === 'object') {
+    return Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [key, normalizeBodyUrls(value, req)])
+    );
+  }
+  return normalizeUploadUrl(body, req);
+}
+
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => originalJson(normalizeBodyUrls(body, req));
+  next();
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dest = path.join(__dirname, UPLOAD_DIR);
