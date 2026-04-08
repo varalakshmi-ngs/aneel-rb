@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:4000/api';
+const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL || '/api';
 
 async function fetchJson(path) {
   const res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });

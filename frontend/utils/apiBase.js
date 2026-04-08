@@ -3,7 +3,8 @@ export function getApiBase() {
     return process.env.NEXT_PUBLIC_ADMIN_API_URL;
   }
 
-  // Fallback to local backend during development or local preview.
-  return 'http://localhost:4000/api';
+  // In production, use the same origin so deployed builds do not hardcode localhost.
+  // This allows the frontend to call the backend through the current host path.
+  return '/api';
 }
 
