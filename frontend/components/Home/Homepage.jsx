@@ -32,7 +32,7 @@ export default function Homepage({ heroSection = {} }) {
   } : null;
 
   const heroPastor = {
-    src: heroPastorFromMeta?.src || pastorImages[0]?.src || "/images/image.png",
+    src: heroPastorFromMeta?.src || pastorImages[0]?.src || "/images/pastor1.webp",
     name: heroPastorFromMeta?.name || pastorImages[0]?.name || "Salman Raju Kondamudi",
   };
 

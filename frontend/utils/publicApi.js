@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL || '/api';
+const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL || (process.env.NODE_ENV === 'production' ? 'https://robochurch.nuhvin.com/api' : '/api');
 
 async function fetchJson(path) {
   const res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
