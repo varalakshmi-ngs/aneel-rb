@@ -65,7 +65,22 @@ app.use(
     credentials: true,
   })
 );
-app.use(`/uploads`, express.static(path.join(__dirname, UPLOAD_DIR)));
+
+const UPLOAD_PATH = path.join(__dirname, UPLOAD_DIR);
+fs.mkdirSync(UPLOAD_PATH, { recursive: true });
+
+app.use(`/uploads`, express.static(UPLOAD_PATH));
+app.use(`/api/uploads`, express.static(UPLOAD_PATH));
+
+function getHost(req) {
+  const forwardedHost = req.get('X-Forwarded-Host') || req.get('Forwarded');
+  if (forwardedHost) {
+    const hostCandidate = forwardedHost.split(',')[0].trim();
+    const hostMatch = hostCandidate.match(/host=([^;]+)/i);
+    return hostMatch ? hostMatch[1].trim() : hostCandidate;
+  }
+  return req.get('host');
+}
 
 function normalizeBodyUrls(body, req) {
   if (Array.isArray(body)) {
@@ -132,14 +147,16 @@ function getProtocol(req) {
 }
 
 function getBaseUrl(req) {
-  // Use BACKEND_URL if set
+  if (process.env.PUBLIC_BASE_URL) {
+    return process.env.PUBLIC_BASE_URL;
+  }
+
   if (process.env.BACKEND_URL) {
     return process.env.BACKEND_URL;
   }
 
-  // Otherwise construct from request
   const protocol = getProtocol(req);
-  const host = req.get('host');
+  const host = getHost(req);
   return `${protocol}://${host}`;
 }
 
@@ -148,9 +165,9 @@ function normalizeUploadUrl(url, req) {
   try {
     const parsed = new URL(url);
     const currentProtocol = getProtocol(req);
-    const currentHost = req.get('host');
+    const currentHost = getHost(req);
 
-    // Convert localhost URLs to current protocol and host
+    // Convert localhost URLs to the externally visible host.
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
       return `${currentProtocol}://${currentHost}${parsed.pathname}${parsed.search}`;
     }
@@ -162,6 +179,45 @@ function normalizeUploadUrl(url, req) {
   } catch {
     // Leave invalid URLs unchanged.
   }
+  return url;
+}
+
+function normalizeStoredUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+
+  try {
+    const parsed = new URL(url);
+    const publicBase = process.env.PUBLIC_BASE_URL ? new URL(process.env.PUBLIC_BASE_URL) : null;
+
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      if (publicBase) {
+        parsed.protocol = publicBase.protocol;
+        parsed.hostname = publicBase.hostname;
+        parsed.port = publicBase.port || '';
+        return parsed.toString();
+      }
+
+      if (parsed.protocol === 'http:') {
+        parsed.protocol = 'https:';
+        return parsed.toString();
+      }
+    }
+
+    if (publicBase && parsed.protocol === 'http:') {
+      parsed.protocol = publicBase.protocol;
+      parsed.hostname = publicBase.hostname;
+      parsed.port = publicBase.port || '';
+      return parsed.toString();
+    }
+
+    if (parsed.protocol === 'http:' && process.env.NODE_ENV === 'production') {
+      parsed.protocol = 'https:';
+      return parsed.toString();
+    }
+  } catch {
+    // Leave invalid URLs unchanged.
+  }
+
   return url;
 }
 
@@ -1024,15 +1080,16 @@ app.get('/api/fix-upload-urls', async (req, res) => {
   try {
     console.log('Fix upload URLs triggered from', req.headers['x-forwarded-for'] || req.ip, 'host:', req.get('host'));
 
-    // Update all HTTP URLs to HTTPS in uploads table
-    const [uploadRows] = await pool.query('SELECT id, url FROM uploads WHERE url LIKE "http://%"');
+    // Normalize stored upload URLs to use a public HTTPS base URL whenever possible.
+    const [uploadRows] = await pool.query('SELECT id, url FROM uploads');
     for (const row of uploadRows) {
       if (!row.url || typeof row.url !== 'string') continue;
-      const httpsUrl = row.url.replace('http://', 'https://');
-      await pool.query('UPDATE uploads SET url = ? WHERE id = ?', [httpsUrl, row.id]);
+      const normalizedUrl = normalizeStoredUrl(row.url);
+      if (normalizedUrl !== row.url) {
+        await pool.query('UPDATE uploads SET url = ? WHERE id = ?', [normalizedUrl, row.id]);
+      }
     }
 
-    // Update all HTTP URLs to HTTPS in other tables by column mapping
     const tableColumns = {
       home_sections: ['image_url'],
       events: ['image_url'],
@@ -1044,26 +1101,28 @@ app.get('/api/fix-upload-urls', async (req, res) => {
 
     for (const [table, columns] of Object.entries(tableColumns)) {
       for (const column of columns) {
-        const [rows] = await pool.query(
-          `SELECT id, ${column} FROM ${table} WHERE ${column} LIKE "http://%"`
-        );
+        const [rows] = await pool.query(`SELECT id, ${column} FROM ${table}`);
         for (const row of rows) {
           if (!row[column] || typeof row[column] !== 'string') continue;
-          const httpsUrl = row[column].replace('http://', 'https://');
-          await pool.query(`UPDATE ${table} SET ${column} = ? WHERE id = ?`, [httpsUrl, row.id]);
+          const normalizedUrl = normalizeStoredUrl(row[column]);
+          if (normalizedUrl !== row[column]) {
+            await pool.query(`UPDATE ${table} SET ${column} = ? WHERE id = ?`, [normalizedUrl, row.id]);
+          }
         }
       }
 
-      // Also check hero_pastor_image_url inside home_sections.meta
       if (table === 'home_sections') {
         const [heroRows] = await pool.query(`SELECT id, meta FROM ${table} WHERE meta IS NOT NULL`);
         for (const row of heroRows) {
           if (row.meta) {
             try {
               const meta = JSON.parse(row.meta);
-              if (meta.hero_pastor_image_url && typeof meta.hero_pastor_image_url === 'string' && meta.hero_pastor_image_url.startsWith('http://')) {
-                meta.hero_pastor_image_url = meta.hero_pastor_image_url.replace('http://', 'https://');
-                await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
+              if (meta.hero_pastor_image_url && typeof meta.hero_pastor_image_url === 'string') {
+                const normalizedUrl = normalizeStoredUrl(meta.hero_pastor_image_url);
+                if (normalizedUrl !== meta.hero_pastor_image_url) {
+                  meta.hero_pastor_image_url = normalizedUrl;
+                  await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
+                }
               }
             } catch (parseError) {
               console.error(`Invalid JSON in home_sections.meta for id=${row.id}:`, parseError);
@@ -1073,7 +1132,7 @@ app.get('/api/fix-upload-urls', async (req, res) => {
       }
     }
 
-    res.json({ message: 'Upload URLs updated to HTTPS' });
+    res.json({ message: 'Upload URLs normalized to HTTPS/public base URL' });
   } catch (error) {
     console.error('Error updating URLs:', error);
     res.status(500).json({ message: 'Failed to update URLs', error: error.message });

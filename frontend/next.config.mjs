@@ -32,6 +32,11 @@ const nextConfig = {
         hostname: 'robochurch.nuhvin.com',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'robochurch.nuhvin.com',
+        pathname: '/api/uploads/**',
+      },
     ],
   },
 };
