@@ -4,10 +4,21 @@ import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function BusinessJourney({ aboutSection }) {
-  const renderSubtitle = aboutSection?.subtitle || "We Have 25+ Years of Experience";
-  const renderTitle = aboutSection?.title || "We Are A Church \n That Believes In God.";
-  const renderDesc = aboutSection?.description || "We are a church that believes in Jesus Christ and the followers and we are a church that believes in Jesus Christ.";
-  const renderImage = aboutSection?.image_url || "/images/image.png";
+  const safeText = (value, fallback) => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    return fallback;
+  };
+
+  const safeUrl = (value, fallback) => {
+    if (typeof value === 'string' && value.trim() !== '') return value;
+    return fallback;
+  };
+
+  const renderSubtitle = safeText(aboutSection?.subtitle, "We Have 25+ Years of Experience");
+  const renderTitle = safeText(aboutSection?.title, "We Are A Church \n That Believes In God.");
+  const renderDesc = safeText(aboutSection?.description, "We are a church that believes in Jesus Christ and the followers and we are a church that believes in Jesus Christ.");
+  const renderImage = safeUrl(aboutSection?.image_url, "/images/image.png");
 
   // Left side animation (top to bottom)
   const leftContainer = {

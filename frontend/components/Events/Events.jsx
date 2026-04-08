@@ -190,8 +190,8 @@ export default function EventsList({ events = [] }) {
             >
               <div className="md:w-1/2 h-60">
                 <img
-                  src={ev.image_url || ev.image || "/images/event-01.avif"}
-                  alt={ev.title}
+                  src={typeof ev.image_url === 'string' && ev.image_url.trim() !== '' ? ev.image_url : typeof ev.image === 'string' && ev.image.trim() !== '' ? ev.image : "/images/event-01.avif"}
+                  alt={typeof ev.title === 'string' ? ev.title : 'Event'}
                   draggable={false}
                   className="object-cover w-full h-full"
                 />
@@ -200,13 +200,17 @@ export default function EventsList({ events = [] }) {
               <div className="md:w-1/2 p-6 flex flex-col justify-between">
                 <div>
                   <div className="text-sm text-[#022147] font-medium mb-2">
-                    {ev.date || ev.event_date}
+                    {typeof ev.date === 'string' ? ev.date : typeof ev.event_date === 'string' ? ev.event_date : ''}
                   </div>
                   <h2 className="text-xl font-semibold text-slate-900 group-hover:text-[#F74F22]">
-                    {ev.title}
+                    {typeof ev.title === 'string' ? ev.title : ''}
                   </h2>
                   <p className="mt-3 text-sm text-slate-600">
-                    {ev.excerpt || ev.description || "Join us for this event and worship together."}
+                    {typeof ev.excerpt === 'string'
+                      ? ev.excerpt
+                      : typeof ev.description === 'string'
+                      ? ev.description
+                      : "Join us for this event and worship together."}
                   </p>
                   <p className="mt-2 text-sm font-medium text-green-600">
                     Tickets: Free

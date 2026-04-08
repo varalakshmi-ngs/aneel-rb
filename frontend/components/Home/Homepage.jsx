@@ -3,18 +3,28 @@
 import Image from "next/image";
 
 export default function Homepage({ heroSection = {} }) {
+  const safeText = (value, fallback) => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    return fallback;
+  };
+
+  const safeUrl = (value, fallback) => {
+    if (typeof value === 'string' && value.trim() !== '') return value;
+    return fallback;
+  };
 
   const hero = {
-    title: heroSection.title || "“శాంతిని కలిగించే వారు ధన్యులు.”",
-    subtitle: heroSection.subtitle || "my community grows in faith through worship, fellowship, and service.",
-    description: heroSection.description || "Join us for weekly programs, events, and ministry opportunities designed to build up every believer.",
-    image_url: heroSection.image_url || "/images/chruch-07.jpg",
+    title: safeText(heroSection.title, "“శాంతిని కలిగించే వారు ధన్యులు.”"),
+    subtitle: safeText(heroSection.subtitle, "my community grows in faith through worship, fellowship, and service."),
+    description: safeText(heroSection.description, "Join us for weekly programs, events, and ministry opportunities designed to build up every believer."),
+    image_url: safeUrl(heroSection.image_url, "/images/chruch-07.jpg"),
   };
 
   const pastorImages = Array.isArray(heroSection?.pastors) ? heroSection.pastors.map(p => ({
     id: p.id || Math.random(),
-    src: p.image_url || "/images/pastor1.webp",
-    name: p.name || `Pastor ${p.position + 1 || 1}`
+    src: safeUrl(p.image_url, "/images/pastor1.webp"),
+    name: safeText(p.name, `Pastor ${typeof p.position === 'number' ? p.position + 1 : 1}`),
   })) : [];
 
   // Fill to 10 pastors if needed
@@ -27,13 +37,13 @@ export default function Homepage({ heroSection = {} }) {
   }
 
   const heroPastorFromMeta = heroSection.hero_pastor_name && heroSection.hero_pastor_image_url ? {
-    src: heroSection.hero_pastor_image_url,
-    name: heroSection.hero_pastor_name,
+    src: safeUrl(heroSection.hero_pastor_image_url, null),
+    name: safeText(heroSection.hero_pastor_name, null),
   } : null;
 
   const heroPastor = {
-    src: heroPastorFromMeta?.src || pastorImages[0]?.src || "/images/pastor1.webp",
-    name: heroPastorFromMeta?.name || pastorImages[0]?.name || "Salman Raju Kondamudi",
+    src: safeUrl(heroPastorFromMeta?.src, safeUrl(pastorImages[0]?.src, "/images/pastor1.webp")),
+    name: safeText(heroPastorFromMeta?.name, safeText(pastorImages[0]?.name, "Salman Raju Kondamudi")),
   };
 
   return (
