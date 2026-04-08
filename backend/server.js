@@ -147,9 +147,17 @@ function normalizeUploadUrl(url, req) {
   if (!url || typeof url !== 'string') return url;
   try {
     const parsed = new URL(url);
+    const currentProtocol = getProtocol(req);
+    const currentHost = req.get('host');
+
+    // Convert localhost URLs to current protocol and host
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      const protocol = getProtocol(req);
-      return `${protocol}://${req.get('host')}${parsed.pathname}${parsed.search}`;
+      return `${currentProtocol}://${currentHost}${parsed.pathname}${parsed.search}`;
+    }
+
+    // Convert HTTP URLs to HTTPS when request is over HTTPS
+    if (parsed.protocol === 'http:' && currentProtocol === 'https') {
+      return `https://${parsed.hostname}${parsed.pathname}${parsed.search}`;
     }
   } catch {
     // Leave invalid URLs unchanged.
@@ -184,8 +192,35 @@ async function initializeDatabase() {
       ) ENGINE=InnoDB;
     `);
 
+    const [homeSectionColumns] = await connection.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'home_sections'`
+    );
+    const existingHomeColumns = homeSectionColumns.map((row) => row.COLUMN_NAME.toLowerCase());
+
+    if (!existingHomeColumns.includes('hero_pastor_name')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_name VARCHAR(255)`);
+    }
+    if (!existingHomeColumns.includes('hero_pastor_image_url')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_image_url VARCHAR(500)`);
+    }
+    if (!existingHomeColumns.includes('updated_at')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+    }
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS pastors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        home_section_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        image_url VARCHAR(500),
+        position INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (home_section_id) REFERENCES home_sections(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_position (home_section_id, position)
+      ) ENGINE=InnoDB;
+    `);
         id INT AUTO_INCREMENT PRIMARY KEY,
         home_section_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
@@ -470,6 +505,9 @@ app.put('/api/home/:key', authenticateToken, async (req, res) => {
     const sectionKey = req.params.key;
     const { title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url, pastors } = req.body;
 
+    console.log('Updating home section:', sectionKey, { title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url });
+    console.log('Pastors data:', pastors);
+
     // First, get or create the home section
     let [existing] = await pool.query('SELECT id FROM home_sections WHERE section_key = ?', [sectionKey]);
 
@@ -480,35 +518,45 @@ app.put('/api/home/:key', authenticateToken, async (req, res) => {
         [sectionKey, title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null]
       );
       sectionId = result.insertId;
+      console.log('Created new home section with ID:', sectionId);
     } else {
       sectionId = existing[0].id;
       await pool.query(
         'UPDATE home_sections SET title = ?, subtitle = ?, description = ?, image_url = ?, hero_pastor_name = ?, hero_pastor_image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null, sectionId]
       );
+      console.log('Updated existing home section with ID:', sectionId);
     }
 
     // Handle pastors if provided
     if (Array.isArray(pastors)) {
+      console.log('Processing pastors array with length:', pastors.length);
       // Delete existing pastors for this section
       await pool.query('DELETE FROM pastors WHERE home_section_id = ?', [sectionId]);
+      console.log('Deleted existing pastors for section:', sectionId);
 
       // Insert new pastors
       for (let i = 0; i < pastors.length; i++) {
         const pastor = pastors[i];
+        console.log('Processing pastor at index', i, ':', pastor);
         if (pastor && typeof pastor === 'object' && pastor.name) {
           await pool.query(
             'INSERT INTO pastors (home_section_id, name, image_url, position) VALUES (?, ?, ?, ?)',
             [sectionId, pastor.name, pastor.image_url || null, i]
           );
+          console.log('Inserted pastor:', pastor.name, 'at position:', i);
+        } else {
+          console.log('Skipping invalid pastor at index', i, ':', pastor);
         }
       }
+    } else {
+      console.log('No pastors array provided or not an array');
     }
 
     res.json({ message: 'Home section updated' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Unable to update home section' });
+    console.error('Error updating home section:', error);
+    res.status(500).json({ message: 'Unable to update home section', error: error.message });
   }
 });
 
@@ -965,20 +1013,55 @@ app.get('/api/uploads', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/health', async (req, res) => {
+app.get('/api/fix-upload-urls', authenticateToken, async (req, res) => {
   try {
-    await pool.query('SELECT 1');
-    let adminCount = 0;
-    try {
-      const [adminRows] = await pool.query('SELECT COUNT(*) as count FROM admin_users');
-      adminCount = adminRows[0].count;
-    } catch (tableError) {
-      console.log('admin_users table does not exist');
+    // Update all HTTP URLs to HTTPS in uploads table
+    const [uploadRows] = await pool.query('SELECT id, url FROM uploads WHERE url LIKE "http://%"');
+    for (const row of uploadRows) {
+      const httpsUrl = row.url.replace('http://', 'https://');
+      await pool.query('UPDATE uploads SET url = ? WHERE id = ?', [httpsUrl, row.id]);
     }
-    res.json({ status: 'ok', db: 'up', admin_users: adminCount });
+
+    // Update all HTTP URLs to HTTPS in other tables
+    const tablesToUpdate = [
+      'home_sections',
+      'events', 
+      'gallery_items',
+      'pcc_members',
+      'church_pastors',
+      'members'
+    ];
+
+    for (const table of tablesToUpdate) {
+      const [rows] = await pool.query(`SELECT id, image_url FROM ${table} WHERE image_url LIKE "http://%"`);
+      for (const row of rows) {
+        const httpsUrl = row.image_url.replace('http://', 'https://');
+        await pool.query(`UPDATE ${table} SET image_url = ? WHERE id = ?`, [httpsUrl, row.id]);
+      }
+
+      // Also check hero_pastor_image_url for home_sections
+      if (table === 'home_sections') {
+        const [heroRows] = await pool.query(`SELECT id, hero_pastor_image_url FROM ${table} WHERE hero_pastor_image_url LIKE "http://%"`);
+        for (const row of heroRows) {
+          const httpsUrl = row.hero_pastor_image_url.replace('http://', 'https://');
+          await pool.query(`UPDATE ${table} SET hero_pastor_image_url = ? WHERE id = ?`, [httpsUrl, row.id]);
+        }
+      }
+
+      // Also check photo_url for pcc_members
+      if (table === 'pcc_members') {
+        const [photoRows] = await pool.query(`SELECT id, photo_url FROM ${table} WHERE photo_url LIKE "http://%"`);
+        for (const row of photoRows) {
+          const httpsUrl = row.photo_url.replace('http://', 'https://');
+          await pool.query(`UPDATE ${table} SET photo_url = ? WHERE id = ?`, [httpsUrl, row.id]);
+        }
+      }
+    }
+
+    res.json({ message: 'Upload URLs updated to HTTPS' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: 'error', db: 'down' });
+    console.error('Error updating URLs:', error);
+    res.status(500).json({ message: 'Failed to update URLs' });
   }
 });
 
