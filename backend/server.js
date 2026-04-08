@@ -263,6 +263,12 @@ async function initializeDatabase() {
     if (!existingHomeColumns.includes('meta')) {
       await connection.query(`ALTER TABLE home_sections ADD COLUMN meta JSON`);
     }
+    if (!existingHomeColumns.includes('hero_pastor_name')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_name VARCHAR(255)`);
+    }
+    if (!existingHomeColumns.includes('hero_pastor_image_url')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_image_url VARCHAR(500)`);
+    }
     if (!existingHomeColumns.includes('updated_at')) {
       await connection.query(`ALTER TABLE home_sections ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
     }
@@ -532,29 +538,13 @@ app.get('/api/home', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM home_sections ORDER BY id');
 
-    // For each home section, fetch associated pastors and parse meta
+    // For each home section, fetch associated pastors
     for (const section of rows) {
       const [pastors] = await pool.query(
         'SELECT id, name, image_url, position FROM pastors WHERE home_section_id = ? ORDER BY position',
         [section.id]
       );
       section.pastors = pastors;
-
-      // Parse meta JSON for additional fields
-      if (section.meta) {
-        try {
-          const meta = JSON.parse(section.meta);
-          section.hero_pastor_name = meta.hero_pastor_name || null;
-          section.hero_pastor_image_url = meta.hero_pastor_image_url || null;
-        } catch (error) {
-          console.error('Error parsing meta JSON for section', section.id, ':', error);
-          section.hero_pastor_name = null;
-          section.hero_pastor_image_url = null;
-        }
-      } else {
-        section.hero_pastor_name = null;
-        section.hero_pastor_image_url = null;
-      }
     }
 
     res.json(rows);
@@ -572,28 +562,22 @@ app.put('/api/home/:key', authenticateToken, async (req, res) => {
     console.log('Updating home section:', sectionKey, { title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url });
     console.log('Pastors data:', pastors);
 
-    // Prepare meta JSON
-    const meta = JSON.stringify({
-      hero_pastor_name: hero_pastor_name || null,
-      hero_pastor_image_url: hero_pastor_image_url || null
-    });
-
     // First, get or create the home section
     let [existing] = await pool.query('SELECT id FROM home_sections WHERE section_key = ?', [sectionKey]);
 
     let sectionId;
     if (existing.length === 0) {
       const [result] = await pool.query(
-        'INSERT INTO home_sections (section_key, title, subtitle, description, image_url, meta) VALUES (?, ?, ?, ?, ?, ?)',
-        [sectionKey, title || null, subtitle || null, description || null, image_url || null, meta]
+        'INSERT INTO home_sections (section_key, title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [sectionKey, title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null]
       );
       sectionId = result.insertId;
       console.log('Created new home section with ID:', sectionId);
     } else {
       sectionId = existing[0].id;
       await pool.query(
-        'UPDATE home_sections SET title = ?, subtitle = ?, description = ?, image_url = ?, meta = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [title || null, subtitle || null, description || null, image_url || null, meta, sectionId]
+        'UPDATE home_sections SET title = ?, subtitle = ?, description = ?, image_url = ?, hero_pastor_name = ?, hero_pastor_image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null, sectionId]
       );
       console.log('Updated existing home section with ID:', sectionId);
     }

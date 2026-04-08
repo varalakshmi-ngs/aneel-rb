@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS home_sections (
   subtitle VARCHAR(255),
   description TEXT,
   image_url VARCHAR(500),
+  hero_pastor_name VARCHAR(255),
+  hero_pastor_image_url VARCHAR(500),
   meta JSON,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
