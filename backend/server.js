@@ -111,12 +111,44 @@ function authenticateToken(req, res, next) {
   });
 }
 
+function getProtocol(req) {
+  // Check for forwarded protocol headers (common with reverse proxies/load balancers)
+  const forwardedProto = req.get('X-Forwarded-Proto') || req.get('X-Forwarded-Protocol');
+  if (forwardedProto) {
+    return forwardedProto.split(',')[0].trim(); // Take first protocol if multiple
+  }
+
+  // Check for Cloudflare header
+  if (req.get('CF-Visitor')) {
+    try {
+      const cfVisitor = JSON.parse(req.get('CF-Visitor'));
+      if (cfVisitor.scheme) return cfVisitor.scheme;
+    } catch {}
+  }
+
+  // Fallback to req.protocol
+  return req.protocol;
+}
+
+function getBaseUrl(req) {
+  // Use BACKEND_URL if set
+  if (process.env.BACKEND_URL) {
+    return process.env.BACKEND_URL;
+  }
+
+  // Otherwise construct from request
+  const protocol = getProtocol(req);
+  const host = req.get('host');
+  return `${protocol}://${host}`;
+}
+
 function normalizeUploadUrl(url, req) {
   if (!url || typeof url !== 'string') return url;
   try {
     const parsed = new URL(url);
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      return `${req.protocol}://${req.get('host')}${parsed.pathname}${parsed.search}`;
+      const protocol = getProtocol(req);
+      return `${protocol}://${req.get('host')}${parsed.pathname}${parsed.search}`;
     }
   } catch {
     // Leave invalid URLs unchanged.
@@ -848,7 +880,7 @@ app.post('/api/upload', authenticateToken, upload.single('file'), async (req, re
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     const url = `${baseUrl}/uploads/${req.file.filename}`;
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
@@ -864,7 +896,7 @@ app.post('/api/upload-public', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     const url = `${baseUrl}/uploads/${req.file.filename}`;
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
