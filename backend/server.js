@@ -17,8 +17,9 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const FRONTEND_URLS = process.env.FRONTEND_URLS;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-token';
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || FRONTEND_URL;
 const isProduction = process.env.NODE_ENV === 'production';
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || (isProduction ? 'https://robochurch.nuhvin.com' : FRONTEND_URL);
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
