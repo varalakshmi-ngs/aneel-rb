@@ -34,7 +34,7 @@ export default function ImageUploadInput({ label, value, onChange, token, isPubl
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-slate-900 mb-2">
         {label}
       </label>
 
@@ -63,7 +63,7 @@ export default function ImageUploadInput({ label, value, onChange, token, isPubl
           accept="image/*"
           onChange={handleFileChange}
           disabled={isUploading || (!token && !isPublic)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 text-sm"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 text-sm"
         />
         {isUploading && (
           <div className="absolute inset-y-0 right-4 flex items-center text-blue-600 text-sm font-medium">
