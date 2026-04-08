@@ -186,8 +186,7 @@ async function initializeDatabase() {
         subtitle VARCHAR(255),
         description TEXT,
         image_url VARCHAR(500),
-        hero_pastor_name VARCHAR(255),
-        hero_pastor_image_url VARCHAR(500),
+        meta JSON,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     `);
@@ -198,11 +197,8 @@ async function initializeDatabase() {
     );
     const existingHomeColumns = homeSectionColumns.map((row) => row.COLUMN_NAME.toLowerCase());
 
-    if (!existingHomeColumns.includes('hero_pastor_name')) {
-      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_name VARCHAR(255)`);
-    }
-    if (!existingHomeColumns.includes('hero_pastor_image_url')) {
-      await connection.query(`ALTER TABLE home_sections ADD COLUMN hero_pastor_image_url VARCHAR(500)`);
+    if (!existingHomeColumns.includes('meta')) {
+      await connection.query(`ALTER TABLE home_sections ADD COLUMN meta JSON`);
     }
     if (!existingHomeColumns.includes('updated_at')) {
       await connection.query(`ALTER TABLE home_sections ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
@@ -210,17 +206,6 @@ async function initializeDatabase() {
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS pastors (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        home_section_id INT NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        image_url VARCHAR(500),
-        position INT NOT NULL DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (home_section_id) REFERENCES home_sections(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_position (home_section_id, position)
-      ) ENGINE=InnoDB;
-    `);
         id INT AUTO_INCREMENT PRIMARY KEY,
         home_section_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
@@ -484,13 +469,23 @@ app.get('/api/home', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM home_sections ORDER BY id');
 
-    // For each home section, fetch associated pastors
+    // For each home section, fetch associated pastors and parse meta
     for (const section of rows) {
       const [pastors] = await pool.query(
         'SELECT id, name, image_url, position FROM pastors WHERE home_section_id = ? ORDER BY position',
         [section.id]
       );
       section.pastors = pastors;
+
+      // Parse meta JSON for additional fields
+      if (section.meta) {
+        const meta = JSON.parse(section.meta);
+        section.hero_pastor_name = meta.hero_pastor_name || null;
+        section.hero_pastor_image_url = meta.hero_pastor_image_url || null;
+      } else {
+        section.hero_pastor_name = null;
+        section.hero_pastor_image_url = null;
+      }
     }
 
     res.json(rows);
@@ -508,22 +503,28 @@ app.put('/api/home/:key', authenticateToken, async (req, res) => {
     console.log('Updating home section:', sectionKey, { title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url });
     console.log('Pastors data:', pastors);
 
+    // Prepare meta JSON
+    const meta = JSON.stringify({
+      hero_pastor_name: hero_pastor_name || null,
+      hero_pastor_image_url: hero_pastor_image_url || null
+    });
+
     // First, get or create the home section
     let [existing] = await pool.query('SELECT id FROM home_sections WHERE section_key = ?', [sectionKey]);
 
     let sectionId;
     if (existing.length === 0) {
       const [result] = await pool.query(
-        'INSERT INTO home_sections (section_key, title, subtitle, description, image_url, hero_pastor_name, hero_pastor_image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [sectionKey, title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null]
+        'INSERT INTO home_sections (section_key, title, subtitle, description, image_url, meta) VALUES (?, ?, ?, ?, ?, ?)',
+        [sectionKey, title || null, subtitle || null, description || null, image_url || null, meta]
       );
       sectionId = result.insertId;
       console.log('Created new home section with ID:', sectionId);
     } else {
       sectionId = existing[0].id;
       await pool.query(
-        'UPDATE home_sections SET title = ?, subtitle = ?, description = ?, image_url = ?, hero_pastor_name = ?, hero_pastor_image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [title || null, subtitle || null, description || null, image_url || null, hero_pastor_name || null, hero_pastor_image_url || null, sectionId]
+        'UPDATE home_sections SET title = ?, subtitle = ?, description = ?, image_url = ?, meta = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [title || null, subtitle || null, description || null, image_url || null, meta, sectionId]
       );
       console.log('Updated existing home section with ID:', sectionId);
     }
@@ -1041,10 +1042,15 @@ app.get('/api/fix-upload-urls', authenticateToken, async (req, res) => {
 
       // Also check hero_pastor_image_url for home_sections
       if (table === 'home_sections') {
-        const [heroRows] = await pool.query(`SELECT id, hero_pastor_image_url FROM ${table} WHERE hero_pastor_image_url LIKE "http://%"`);
+        const [heroRows] = await pool.query(`SELECT id, meta FROM ${table} WHERE meta IS NOT NULL`);
         for (const row of heroRows) {
-          const httpsUrl = row.hero_pastor_image_url.replace('http://', 'https://');
-          await pool.query(`UPDATE ${table} SET hero_pastor_image_url = ? WHERE id = ?`, [httpsUrl, row.id]);
+          if (row.meta) {
+            let meta = JSON.parse(row.meta);
+            if (meta.hero_pastor_image_url && meta.hero_pastor_image_url.startsWith('http://')) {
+              meta.hero_pastor_image_url = meta.hero_pastor_image_url.replace('http://', 'https://');
+              await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
+            }
+          }
         }
       }
 
