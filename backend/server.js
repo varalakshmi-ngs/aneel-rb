@@ -1029,43 +1029,42 @@ app.get('/api/fix-upload-urls', async (req, res) => {
       await pool.query('UPDATE uploads SET url = ? WHERE id = ?', [httpsUrl, row.id]);
     }
 
-    // Update all HTTP URLs to HTTPS in other tables
-    const tablesToUpdate = [
-      'home_sections',
-      'events', 
-      'gallery_items',
-      'pcc_members',
-      'church_pastors',
-      'members'
-    ];
+    // Update all HTTP URLs to HTTPS in other tables by column mapping
+    const tableColumns = {
+      home_sections: ['image_url'],
+      events: ['image_url'],
+      gallery_items: ['image_url'],
+      church_pastors: ['image_url'],
+      members: ['image_url'],
+      pcc_members: ['photo_url'],
+    };
 
-    for (const table of tablesToUpdate) {
-      const [rows] = await pool.query(`SELECT id, image_url FROM ${table} WHERE image_url LIKE "http://%"`);
-      for (const row of rows) {
-        const httpsUrl = row.image_url.replace('http://', 'https://');
-        await pool.query(`UPDATE ${table} SET image_url = ? WHERE id = ?`, [httpsUrl, row.id]);
+    for (const [table, columns] of Object.entries(tableColumns)) {
+      for (const column of columns) {
+        const [rows] = await pool.query(
+          `SELECT id, ${column} FROM ${table} WHERE ${column} LIKE "http://%"`
+        );
+        for (const row of rows) {
+          const httpsUrl = row[column].replace('http://', 'https://');
+          await pool.query(`UPDATE ${table} SET ${column} = ? WHERE id = ?`, [httpsUrl, row.id]);
+        }
       }
 
-      // Also check hero_pastor_image_url for home_sections
+      // Also check hero_pastor_image_url inside home_sections.meta
       if (table === 'home_sections') {
         const [heroRows] = await pool.query(`SELECT id, meta FROM ${table} WHERE meta IS NOT NULL`);
         for (const row of heroRows) {
           if (row.meta) {
-            let meta = JSON.parse(row.meta);
-            if (meta.hero_pastor_image_url && meta.hero_pastor_image_url.startsWith('http://')) {
-              meta.hero_pastor_image_url = meta.hero_pastor_image_url.replace('http://', 'https://');
-              await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
+            try {
+              const meta = JSON.parse(row.meta);
+              if (meta.hero_pastor_image_url && meta.hero_pastor_image_url.startsWith('http://')) {
+                meta.hero_pastor_image_url = meta.hero_pastor_image_url.replace('http://', 'https://');
+                await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
+              }
+            } catch (parseError) {
+              console.error(`Invalid JSON in home_sections.meta for id=${row.id}:`, parseError);
             }
           }
-        }
-      }
-
-      // Also check photo_url for pcc_members
-      if (table === 'pcc_members') {
-        const [photoRows] = await pool.query(`SELECT id, photo_url FROM ${table} WHERE photo_url LIKE "http://%"`);
-        for (const row of photoRows) {
-          const httpsUrl = row.photo_url.replace('http://', 'https://');
-          await pool.query(`UPDATE ${table} SET photo_url = ? WHERE id = ?`, [httpsUrl, row.id]);
         }
       }
     }
