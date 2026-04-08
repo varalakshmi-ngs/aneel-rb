@@ -51,7 +51,8 @@ export default function AdminLogin() {
 
     try {
       const data = await adminLogin(loginState.username.trim(), loginState.password);
-      localStorage.setItem('adminToken', data.token);
+      // Temporary: set a dummy token since JWT is disabled
+      localStorage.setItem('adminToken', 'temp-token-' + Date.now());
       setStatusMessage('Signed in successfully.');
       router.push('/admin/dashboard');
     } catch (error) {
