@@ -479,9 +479,15 @@ app.get('/api/home', async (req, res) => {
 
       // Parse meta JSON for additional fields
       if (section.meta) {
-        const meta = JSON.parse(section.meta);
-        section.hero_pastor_name = meta.hero_pastor_name || null;
-        section.hero_pastor_image_url = meta.hero_pastor_image_url || null;
+        try {
+          const meta = JSON.parse(section.meta);
+          section.hero_pastor_name = meta.hero_pastor_name || null;
+          section.hero_pastor_image_url = meta.hero_pastor_image_url || null;
+        } catch (error) {
+          console.error('Error parsing meta JSON for section', section.id, ':', error);
+          section.hero_pastor_name = null;
+          section.hero_pastor_image_url = null;
+        }
       } else {
         section.hero_pastor_name = null;
         section.hero_pastor_image_url = null;
@@ -1014,7 +1020,7 @@ app.get('/api/uploads', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/fix-upload-urls', authenticateToken, async (req, res) => {
+app.get('/api/fix-upload-urls', async (req, res) => {
   try {
     // Update all HTTP URLs to HTTPS in uploads table
     const [uploadRows] = await pool.query('SELECT id, url FROM uploads WHERE url LIKE "http://%"');
