@@ -44,13 +44,20 @@ export default async function page() {
   const homeSections = await getHomeSections();
   const events = await getEvents();
   const heroSection = homeSections.find((section) => section.section_key === "hero") || {};
+  const pastorsSection = homeSections.find((section) => section.section_key === "pastors") || {};
   const timetableSection = homeSections.find((section) => section.section_key === "weekly_timetable") || {};
   const aboutSection = homeSections.find((section) => section.section_key === "aboutus") || {};
+
+  // Combine hero section with pastors from pastors section
+  const combinedHeroSection = {
+    ...heroSection,
+    pastors: pastorsSection.pastors || [],
+  };
 
   return (
     <div>
       
-      <Homepage heroSection={heroSection} />
+      <Homepage heroSection={combinedHeroSection} />
       <BusinessJourney aboutSection={aboutSection} />
       <Homepage2 />
       <ChurchTimings schedule={(timetableSection.meta && typeof timetableSection.meta === "string"
