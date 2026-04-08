@@ -18,7 +18,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const FRONTEND_URLS = process.env.FRONTEND_URLS;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret-token';
 const isProduction = process.env.NODE_ENV === 'production';
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || (isProduction ? 'https://robochurch.nuhvin.com' : FRONTEND_URL);
+const BACKEND_URL = process.env.BACKEND_URL || (isProduction ? 'https://robochurch.nuhvin.com' : `http://localhost:${PORT}`);
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || BACKEND_URL;
 
 
 app.use(express.json());
@@ -90,6 +91,19 @@ function authenticateToken(req, res, next) {
     req.user = user;
     next();
   });
+}
+
+function normalizeUploadUrl(url, req) {
+  if (!url || typeof url !== 'string') return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return `${req.protocol}://${req.get('host')}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    // Leave invalid URLs unchanged.
+  }
+  return url;
 }
 
 async function initializeDatabase() {
@@ -816,7 +830,7 @@ app.post('/api/upload', authenticateToken, upload.single('file'), async (req, re
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const url = `${baseUrl}/uploads/${req.file.filename}`;
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
@@ -832,7 +846,7 @@ app.post('/api/upload-public', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const baseUrl = PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const url = `${baseUrl}/uploads/${req.file.filename}`;
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
@@ -845,7 +859,8 @@ app.post('/api/upload-public', upload.single('file'), async (req, res) => {
 app.get('/api/uploads', authenticateToken, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM uploads ORDER BY uploaded_at DESC');
-    res.json(rows);
+    const normalizedRows = rows.map((row) => ({ ...row, url: normalizeUploadUrl(row.url, req) }));
+    res.json(normalizedRows);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Unable to load uploads' });

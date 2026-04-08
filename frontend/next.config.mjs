@@ -27,6 +27,11 @@ const nextConfig = {
         hostname: '127.0.0.1',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'robochurch.nuhvin.com',
+        pathname: '/uploads/**',
+      },
     ],
   },
 };
