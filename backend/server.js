@@ -169,13 +169,22 @@ function normalizeUploadUrl(url, req) {
 
     // Convert localhost URLs to the externally visible host.
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      return `${currentProtocol}://${currentHost}${parsed.pathname}${parsed.search}`;
+      parsed.protocol = currentProtocol + ':';
+      parsed.hostname = currentHost.split(':')[0];
+      if (currentHost.includes(':')) parsed.port = currentHost.split(':')[1];
+      else parsed.port = '';
     }
 
-    // Convert HTTP URLs to HTTPS when request is over HTTPS
-    if (parsed.protocol === 'http:' && currentProtocol === 'https') {
-      return `https://${parsed.hostname}${parsed.pathname}${parsed.search}`;
+    // Convert HTTP URLs to HTTPS when request is over HTTPS or if it's production domain
+    if (parsed.protocol === 'http:' && (currentProtocol === 'https' || parsed.hostname.includes('nuhvin.com'))) {
+      parsed.protocol = 'https:';
     }
+
+    if (parsed.pathname.startsWith('/uploads/')) {
+      parsed.pathname = '/api' + parsed.pathname;
+    }
+
+    return parsed.toString();
   } catch {
     // Leave invalid URLs unchanged.
   }
@@ -194,26 +203,24 @@ function normalizeStoredUrl(url) {
         parsed.protocol = publicBase.protocol;
         parsed.hostname = publicBase.hostname;
         parsed.port = publicBase.port || '';
-        return parsed.toString();
       }
-
-      if (parsed.protocol === 'http:') {
-        parsed.protocol = 'https:';
-        return parsed.toString();
-      }
-    }
-
-    if (publicBase && parsed.protocol === 'http:') {
+    } else if (publicBase && parsed.protocol === 'http:') {
       parsed.protocol = publicBase.protocol;
       parsed.hostname = publicBase.hostname;
       parsed.port = publicBase.port || '';
-      return parsed.toString();
     }
 
-    if (parsed.protocol === 'http:' && process.env.NODE_ENV === 'production') {
+    // Force https for production domains and environments
+    if (parsed.protocol === 'http:' && (parsed.hostname.includes('nuhvin.com') || process.env.NODE_ENV === 'production')) {
       parsed.protocol = 'https:';
-      return parsed.toString();
     }
+
+    // NGINX proxies only /api to the backend, so static path /uploads must be /api/uploads
+    if (parsed.pathname.startsWith('/uploads/')) {
+      parsed.pathname = '/api' + parsed.pathname;
+    }
+
+    return parsed.toString();
   } catch {
     // Leave invalid URLs unchanged.
   }
