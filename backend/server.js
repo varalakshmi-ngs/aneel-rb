@@ -428,9 +428,8 @@ app.post('/api/admin/login', async (req, res) => {
 
     const user = rows[0];
     console.log('User found, checking password');
-    // Temporary: skip bcrypt for debugging
-    const valid = password === 'admin123'; // Temporary hardcoded check
-    console.log('Password check result:', valid, 'for password:', password);
+    const valid = await bcrypt.compare(password, user.password_hash);
+    console.log('Password check result:', valid);
 
     if (!valid) {
       console.log('Invalid password for user:', username);
@@ -438,8 +437,8 @@ app.post('/api/admin/login', async (req, res) => {
     }
 
     console.log('Login successful for user:', username);
-    // Temporary: return success without JWT
-    res.json({ message: 'Login successful', user: { id: user.id, username: user.username } });
+    const token = generateToken(user);
+    res.json({ message: 'Login successful', token, user: { id: user.id, username: user.username } });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Login failed', error: error.message });
