@@ -1038,7 +1038,7 @@ app.get('/api/fix-upload-urls', async (req, res) => {
       events: ['image_url'],
       gallery_items: ['image_url'],
       church_pastors: ['image_url'],
-      members: ['image_url'],
+      members: ['photo_url'],
       pcc_members: ['photo_url'],
     };
 
