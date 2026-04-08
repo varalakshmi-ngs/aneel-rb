@@ -8,6 +8,7 @@ RUN npm ci --only=production
 COPY . .
 
 RUN mkdir -p uploads
+VOLUME ["/app/uploads"]
 
 EXPOSE 4000
 

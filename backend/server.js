@@ -1022,9 +1022,12 @@ app.get('/api/uploads', authenticateToken, async (req, res) => {
 
 app.get('/api/fix-upload-urls', async (req, res) => {
   try {
+    console.log('Fix upload URLs triggered from', req.headers['x-forwarded-for'] || req.ip, 'host:', req.get('host'));
+
     // Update all HTTP URLs to HTTPS in uploads table
     const [uploadRows] = await pool.query('SELECT id, url FROM uploads WHERE url LIKE "http://%"');
     for (const row of uploadRows) {
+      if (!row.url || typeof row.url !== 'string') continue;
       const httpsUrl = row.url.replace('http://', 'https://');
       await pool.query('UPDATE uploads SET url = ? WHERE id = ?', [httpsUrl, row.id]);
     }
@@ -1045,6 +1048,7 @@ app.get('/api/fix-upload-urls', async (req, res) => {
           `SELECT id, ${column} FROM ${table} WHERE ${column} LIKE "http://%"`
         );
         for (const row of rows) {
+          if (!row[column] || typeof row[column] !== 'string') continue;
           const httpsUrl = row[column].replace('http://', 'https://');
           await pool.query(`UPDATE ${table} SET ${column} = ? WHERE id = ?`, [httpsUrl, row.id]);
         }
@@ -1057,7 +1061,7 @@ app.get('/api/fix-upload-urls', async (req, res) => {
           if (row.meta) {
             try {
               const meta = JSON.parse(row.meta);
-              if (meta.hero_pastor_image_url && meta.hero_pastor_image_url.startsWith('http://')) {
+              if (meta.hero_pastor_image_url && typeof meta.hero_pastor_image_url === 'string' && meta.hero_pastor_image_url.startsWith('http://')) {
                 meta.hero_pastor_image_url = meta.hero_pastor_image_url.replace('http://', 'https://');
                 await pool.query(`UPDATE ${table} SET meta = ? WHERE id = ?`, [JSON.stringify(meta), row.id]);
               }
@@ -1072,7 +1076,7 @@ app.get('/api/fix-upload-urls', async (req, res) => {
     res.json({ message: 'Upload URLs updated to HTTPS' });
   } catch (error) {
     console.error('Error updating URLs:', error);
-    res.status(500).json({ message: 'Failed to update URLs' });
+    res.status(500).json({ message: 'Failed to update URLs', error: error.message });
   }
 });
 
