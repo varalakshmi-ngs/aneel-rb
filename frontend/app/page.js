@@ -73,10 +73,10 @@ export default async function page() {
       <Homepage2 />
       <ChurchTimings schedule={(timetableSection.meta && typeof timetableSection.meta === "string"
         ? (() => { try { return JSON.parse(timetableSection.meta); } catch { return {}; } })()
-        : (timetableSection.meta || {})
-      ).schedule} />
+        : (timetableSection.meta || {}))
+      .schedule} />
       {/* <Ourevents /> */}
-      <EventsList events={events} />
+      <EventsList events={events} latestOnly showViewMoreButton />
       {/* what wwe do */}
       {/* <WhatWeDo /> */}
       {/* <TeamSection /> */}

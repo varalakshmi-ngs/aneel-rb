@@ -1,8 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
-export default function EventsList({ events = [] }) {
+function parseTimestamp(value) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const time = Date.parse(value);
+    if (!Number.isNaN(time)) return time;
+    const normalized = value.replace(/-/g, "/");
+    const fallbackTime = Date.parse(normalized);
+    return Number.isNaN(fallbackTime) ? 0 : fallbackTime;
+  }
+  return 0;
+}
+
+export default function EventsList({ events = [], latestOnly = false, showViewMoreButton = false }) {
   const defaultEvents = [
     {
       id: 1,
@@ -161,13 +174,21 @@ export default function EventsList({ events = [] }) {
 
   const eventItems = events.length > 0 ? events : defaultEvents;
 
+  const latestSortedEvents = [...eventItems].sort((a, b) => {
+    const aValue = parseTimestamp(a.updated_at ?? a.updatedAt ?? a.last_updated ?? a.event_date ?? a.date ?? a.created_at ?? a.createdAt ?? a.id);
+    const bValue = parseTimestamp(b.updated_at ?? b.updatedAt ?? b.last_updated ?? b.event_date ?? b.date ?? b.created_at ?? b.createdAt ?? b.id);
+    return bValue - aValue;
+  });
+
+  const displayedEvents = latestOnly ? latestSortedEvents.slice(0, 1) : eventItems;
+
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 5;
-  const totalPages = Math.ceil(eventItems.length / eventsPerPage);
+  const totalPages = Math.ceil(displayedEvents.length / eventsPerPage);
 
   const indexOfLast = currentPage * eventsPerPage;
   const indexOfFirst = indexOfLast - eventsPerPage;
-  const currentEvents = eventItems.slice(indexOfFirst, indexOfLast);
+  const currentEvents = displayedEvents.slice(indexOfFirst, indexOfLast);
 
   return (
     <main className="min-h-screen bg-[#ffffff] text-slate-800 py-12">
@@ -236,18 +257,29 @@ export default function EventsList({ events = [] }) {
           ))}
         </section>
 
-        {/* pagination */}
-        <footer className="mt-10 flex justify-center">
-          <nav className="inline-flex items-center space-x-3 bg-white rounded-lg px-4 py-2 border border-slate-100 shadow-sm">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md text-sm disabled:opacity-50"
+        {showViewMoreButton && (
+          <div className="mt-10 text-center">
+            <Link
+              href="/Events"
+              className="inline-flex items-center justify-center rounded-full bg-[#F74F22] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#F74F22]/20 transition hover:bg-[#d6451a]"
             >
-              Prev
-            </button>
+              View More events
+            </Link>
+          </div>
+        )}
 
-            {[...Array(totalPages)].map((_, idx) => (
+        {!latestOnly && (
+          <footer className="mt-10 flex justify-center">
+            <nav className="inline-flex items-center space-x-3 bg-white rounded-lg px-4 py-2 border border-slate-100 shadow-sm">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md text-sm disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              {[...Array(totalPages)].map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentPage(idx + 1)}
@@ -270,6 +302,7 @@ export default function EventsList({ events = [] }) {
             </button>
           </nav>
         </footer>
+        )}
       </div>
     </main>
   );
