@@ -334,7 +334,8 @@ export function AdminDashboardProvider({ children }) {
       setGalleryForm(initialGalleryForm);
       await loadAllData();
     } catch (error) {
-      setStatusMessage(error.message || 'Saving gallery item failed.');
+      const errorMessage = error?.data?.message || error?.message || 'Saving gallery item failed.';
+      setStatusMessage(errorMessage);
     }
   }
 

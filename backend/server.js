@@ -775,7 +775,7 @@ app.post('/api/gallery', authenticateToken, async (req, res) => {
     const { title, description, image_url, category } = req.body;
     await pool.query(
       'INSERT INTO gallery_items (title, description, image_url, category) VALUES (?, ?, ?, ?)',
-      [title, description || null, image_url || null, category || null]
+      [title || '', description || null, image_url || null, category || null]
     );
     res.json({ message: 'Gallery item added' });
   } catch (error) {
@@ -790,7 +790,7 @@ app.put('/api/gallery/:id', authenticateToken, async (req, res) => {
     const { title, description, image_url, category } = req.body;
     await pool.query(
       'UPDATE gallery_items SET title = ?, description = ?, image_url = ?, category = ? WHERE id = ?',
-      [title, description || null, image_url || null, category || null, id]
+      [title || '', description || null, image_url || null, category || null, id]
     );
     res.json({ message: 'Gallery item updated' });
   } catch (error) {
