@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getApiBase } from '@/utils/apiBase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiUser, FiHeart, FiUsers, FiBook, FiCheck, FiChevronRight, FiChevronLeft, FiSave, FiX, FiPlus, FiTrash2, FiCamera } from 'react-icons/fi';
@@ -212,7 +213,7 @@ export default function EditProfilePage() {
 
         {/* Wizard Header */}
         <div className="flex justify-between items-center mb-12 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-          {steps.map((step, idx) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             const active = step.id === currentStep;
             const done = step.id < currentStep;
@@ -238,11 +239,11 @@ export default function EditProfilePage() {
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
                 <div className="flex flex-col items-center mb-4">
                   <div className="relative group">
-                    <div className="w-32 h-32 bg-gray-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl group-hover:border-emerald-500 transition-colors">
+                    <div className="w-32 h-32 bg-gray-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl group-hover:border-emerald-500 transition-colors relative">
                       {profilePhoto ? (
-                        <img src={URL.createObjectURL(profilePhoto)} className="w-full h-full object-cover" />
+                        <Image src={URL.createObjectURL(profilePhoto)} alt="Profile photo preview" fill className="object-cover" unoptimized />
                       ) : existingPhotos.profile ? (
-                        <img src={existingPhotos.profile} className="w-full h-full object-cover" />
+                        <Image src={existingPhotos.profile} alt="Current profile photo" fill className="object-cover" unoptimized />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-200">
                           <FiUser size={48} />
@@ -302,11 +303,11 @@ export default function EditProfilePage() {
                   <div className="pt-10 border-t border-gray-100 space-y-10">
                      <div className="flex flex-col items-center">
                         <div className="relative group">
-                          <div className="w-28 h-28 bg-gray-50 rounded-[2.2rem] overflow-hidden border-4 border-white shadow-lg group-hover:border-emerald-500 transition-all">
+                          <div className="w-28 h-28 bg-gray-50 rounded-[2.2rem] overflow-hidden border-4 border-white shadow-lg group-hover:border-emerald-500 transition-all relative">
                             {spousePhoto ? (
-                              <img src={URL.createObjectURL(spousePhoto)} className="w-full h-full object-cover" />
+                              <Image src={URL.createObjectURL(spousePhoto)} alt="Spouse photo preview" fill className="object-cover" unoptimized />
                             ) : existingPhotos.spouse ? (
-                              <img src={existingPhotos.spouse} className="w-full h-full object-cover" />
+                              <Image src={existingPhotos.spouse} alt="Current spouse photo" fill className="object-cover" unoptimized />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-200">
                                 <FiHeart size={36} />
@@ -368,9 +369,9 @@ export default function EditProfilePage() {
                         <div className="flex flex-col items-center justify-center">
                            <div className="w-24 h-24 bg-white rounded-3xl overflow-hidden mb-3 border-2 border-gray-100 relative shadow-sm group-hover:border-emerald-200">
                                {childPhotos[idx] ? (
-                                   <img src={URL.createObjectURL(childPhotos[idx])} className="w-full h-full object-cover" />
+                                   <Image src={URL.createObjectURL(childPhotos[idx])} alt={`Photo of child ${idx + 1}`} fill className="object-cover" unoptimized />
                                ) : child.photo_url ? (
-                                   <img src={child.photo_url} className="w-full h-full object-cover" />
+                                   <Image src={child.photo_url} alt={`Photo of child ${idx + 1}`} fill className="object-cover" unoptimized />
                                ) : (
                                    <div className="w-full h-full flex items-center justify-center text-gray-100">
                                        <FiUser size={36} />

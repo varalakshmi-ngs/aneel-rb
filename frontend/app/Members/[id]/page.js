@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import { getApiBase } from '@/utils/apiBase';
 import Link from 'next/link';
 import { formatDate } from '@/utils/formatDate';
-import { FiMail, FiPhone, FiCalendar, FiUser, FiHome, FiHeart, FiUsers, FiAward } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiUser, FiHeart, FiUsers, FiAward } from 'react-icons/fi';
 
 export default function MemberProfilePage() {
   const params = useParams();
-  const router = useRouter();
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -63,9 +63,9 @@ export default function MemberProfilePage() {
           <div className="h-48 bg-gradient-to-r from-emerald-500 to-teal-400 relative">
              <div className="absolute -bottom-16 left-8 sm:left-12">
                 <div className="p-1.5 bg-white rounded-[2rem] shadow-2xl">
-                    <div className="w-32 h-32 sm:w-40 sm:h-40 bg-neutral-100 rounded-[1.8rem] overflow-hidden">
+                    <div className="w-32 h-32 sm:w-40 sm:h-40 bg-neutral-100 rounded-[1.8rem] overflow-hidden relative">
                         {member.photo_url ? (
-                            <img src={member.photo_url} alt={member.first_name} className="w-full h-full object-cover" />
+                            <Image src={member.photo_url} alt={member.first_name} fill className="object-cover" unoptimized />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-neutral-400">
                                 {member.first_name.charAt(0)}
@@ -168,9 +168,9 @@ export default function MemberProfilePage() {
                             Spouse Information
                         </h3>
                         <div className="flex flex-col sm:flex-row items-center gap-8">
-                            <div className="w-32 h-32 bg-gray-100 rounded-3xl overflow-hidden shadow-inner flex-shrink-0">
+                            <div className="w-32 h-32 bg-gray-100 rounded-3xl overflow-hidden shadow-inner flex-shrink-0 relative">
                                 {member.spouse.photo_url ? (
-                                    <img src={member.spouse.photo_url} alt={member.spouse.first_name} className="w-full h-full object-cover" />
+                                    <Image src={member.spouse.photo_url} alt={member.spouse.first_name} fill className="object-cover" unoptimized />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-300">
                                         {member.spouse.first_name.charAt(0)}
@@ -208,9 +208,9 @@ export default function MemberProfilePage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {member.children.map((child, idx) => (
                                 <div key={idx} className="flex items-center gap-4 p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-emerald-200 transition-all hover:bg-white hover:shadow-md group">
-                                    <div className="w-16 h-16 bg-white rounded-2xl overflow-hidden shadow-sm flex-shrink-0">
+                                    <div className="w-16 h-16 bg-white rounded-2xl overflow-hidden shadow-sm flex-shrink-0 relative">
                                         {child.photo_url ? (
-                                            <img src={child.photo_url} alt={child.name} className="w-full h-full object-cover" />
+                                            <Image src={child.photo_url} alt={child.name} fill className="object-cover" unoptimized />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xl font-bold text-gray-300">
                                                 {child.name.charAt(0)}

@@ -23,7 +23,7 @@ export default function Header() {
     { name: "Pastors", href : "/Pastors"},
     { name: "Events", href: "/Events" },
     { name: "Gallery", href: "/gallery" },
-    { name: "Pcc", href: "/PccMembers" },
+    { name: "Pcc", href: "/Members" },
     { name: "Members", href: "/Members" },
     { name: "Learnt Prayers", href: "/LearntPrayers" },
     { name: "Contact", href: "/contactus" },

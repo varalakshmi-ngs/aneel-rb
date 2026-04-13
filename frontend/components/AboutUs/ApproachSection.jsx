@@ -38,7 +38,7 @@ export default function ApproachSection() {
             </Link>
 
             <Link
-              href="/PccMembers"
+              href="/Members"
               className="flex items-center gap-2 px-6 py-3 bg-[#FFF5F2] border border-[#F74F22]/30 text-[#022147] font-semibold rounded-xl hover:bg-[#F74F22] hover:text-white transition-all"
             >
               <Church size={20} />

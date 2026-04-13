@@ -39,7 +39,7 @@ export default function Footer() {
                 <li><a href="/Events" className="hover:text-[#F74F22]">Events</a></li>
                 <li><a href="/aboutus" className="hover:text-[#F74F22]">About Us</a></li>
                 <li><a href="/gallery" className="hover:text-[#F74F22]">Gallery</a></li>
-                <li><a href="/PccMembers" className="hover:text-[#F74F22]">PCC Members</a></li>
+                <li><a href="/Members" className="hover:text-[#F74F22]">PCC Members</a></li>
                 <li><a href="/PastorList" className="hover:text-[#F74F22]">Pastors</a></li>
                 <li><a href="/contactus" className="hover:text-[#F74F22]">Contact Us</a></li>
               </ul>

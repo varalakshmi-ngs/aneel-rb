@@ -53,12 +53,11 @@ function DeleteConfirmButton({ onDelete }) {
 }
 
 export default function ApprovalsPage() {
-  const { 
-    token, 
-    registeredMembers, 
-    handleUpdateRegisteredMemberStatus, 
+  const {
+    registeredMembers,
+    handleUpdateRegisteredMemberStatus,
     handleDeleteRegisteredMember,
-    loading 
+    loading,
   } = useAdminDashboard();
 
   const [actionLoading, setActionLoading] = useState(null);
