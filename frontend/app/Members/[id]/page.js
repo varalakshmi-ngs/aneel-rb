@@ -22,6 +22,10 @@ export default function MemberProfilePage() {
         if (!res.ok) throw new Error('Member not found');
         const data = await res.json();
         console.log('Member profile fetched:', data);
+        console.log('church_records payload:', data.church_records);
+        console.log('baptism_date raw:', data.church_records?.baptism_date);
+        console.log('confirmation_date raw:', data.church_records?.confirmation_date);
+        console.log('joining_date raw:', data.church_records?.joining_date);
         setMember(data);
       } catch (err) {
         setError(err.message);
