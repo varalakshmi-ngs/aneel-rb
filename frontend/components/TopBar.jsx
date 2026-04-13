@@ -8,80 +8,81 @@ import { usePathname, useRouter } from "next/navigation";
 export default function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setIsAdminLoggedIn(Boolean(localStorage.getItem("adminToken")));
+    const hasAdminToken = Boolean(localStorage.getItem("adminToken"));
+    const hasMemberToken = Boolean(localStorage.getItem("member_token"));
+    setIsLoggedIn(hasAdminToken || hasMemberToken);
   }, [pathname]);
 
   const handleSignOut = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("adminToken");
+      localStorage.removeItem("member_token");
+      localStorage.removeItem("member_info");
     }
-    setIsAdminLoggedIn(false);
+    setIsLoggedIn(false);
     router.push("/login");
   };
-
-  const isAdminRoute = pathname?.startsWith("/admin");
-  const showSignOut = isAdminRoute && isAdminLoggedIn;
-  const showSignIn = !showSignOut;
 
   return (
     <div
       className="
         fixed top-0 left-0 w-full
         bg-white text-[#022147]
-        py-3 px-4 md:px-8
+        px-4 md:px-8
         flex items-center justify-between
         z-50 shadow-sm border-b border-gray-200
+        h-[70px] sm:h-[80px] md:h-[90px]
       "
-      style={{ height: "70px" }}
     >
+      {/* Logo Section */}
       <Link href="/" className="flex items-center flex-shrink-0">
-        <div className="flex items-center flex-shrink-0">
-          <Image src="/images/cross.png" alt="Church Logo" width={32} height={32} className="object-contain sm:w-[38px] sm:h-[38px]" />
-        </div>
+        <Image 
+          src="/images/cross.png" 
+          alt="Church Logo" 
+          width={45} 
+          height={45} 
+          className="object-contain w-[35px] h-[35px] sm:w-[45px] sm:h-[45px]" 
+        />
       </Link>
 
-      <div
-        className="
-          absolute left-1/2 transform -translate-x-1/2
-          flex flex-col sm:flex-row items-center sm:items-baseline
-          text-center space-x-0 sm:space-x-2
-        "
-      >
+      {/* Title Section - Centered using Flexbox for better responsiveness */}
+      <div className="flex-1 flex flex-col items-center justify-center min-w-0 px-2">
         <h1
           className="
-            font-extrabold tracking-wide
-            text-[14px] xs:text-[16px]
-            sm:text-[29px] md:text-[29px] lg:text-[49px]
+            font-black tracking-tight leading-none
+            text-[16px] xs:text-[18px] sm:text-[24px] md:text-[32px] lg:text-[42px]
             text-[#022147]
-            whitespace-nowrap
+            whitespace-nowrap overflow-hidden text-ellipsis
           "
         >
           St. Johns Lutheran Church
         </h1>
-        <span className="text-[#022147] font-semibold text-[12px] xs:text-[14px] sm:text-[18px] md:text-[24px] whitespace-nowrap">
+        <span className="text-[#F74F22] font-bold text-[10px] sm:text-[14px] md:text-[16px] tracking-widest uppercase">
           Since 2000
         </span>
       </div>
 
+      {/* Auth Actions Section */}
       <div className="flex items-center flex-shrink-0">
-        {showSignIn && (
-          <Link href="/login" className="inline-flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600">
+        {!isLoggedIn ? (
+          <Link 
+            href="/login" 
+            className="inline-flex items-center rounded-xl bg-[#022147] px-3 py-1.5 sm:px-5 sm:py-2.5 text-[10px] sm:text-xs font-black text-white hover:bg-[#F74F22] transition-colors shadow-lg shadow-blue-900/10 uppercase tracking-widest"
+          >
             Sign In
-            <Image src="/enter.png" alt="Login" width={20} height={20} className="ml-2" />
+            <Image src="/enter.png" alt="Login" width={16} height={16} className="ml-2 hidden sm:block" />
           </Link>
-        )}
-
-        {showSignOut && (
+        ) : (
           <button
             onClick={handleSignOut}
-            className="inline-flex items-center rounded-md bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600"
+            className="inline-flex items-center rounded-xl bg-red-600 px-3 py-1.5 sm:px-5 sm:py-2.5 text-[10px] sm:text-xs font-black text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-600/10 uppercase tracking-widest"
           >
             Sign Out
-            <Image src="/enter.png" alt="Logout" width={20} height={20} className="ml-2 rotate-180" />
+            <Image src="/enter.png" alt="Logout" width={16} height={16} className="ml-2 rotate-180 hidden sm:block" />
           </button>
         )}
       </div>

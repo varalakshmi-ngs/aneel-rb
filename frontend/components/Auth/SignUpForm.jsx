@@ -7,7 +7,8 @@ import Link from "next/link";
 import { getApiBase } from "@/utils/apiBase";
 import { 
   FiUser, FiPhone, FiLock, FiCalendar, FiUpload, 
-  FiHeart, FiUsers, FiBook, FiCheck, FiChevronRight, FiChevronLeft
+  FiHeart, FiUsers, FiBook, FiCheck, FiChevronRight, FiChevronLeft,
+  FiEye, FiEyeOff
 } from "react-icons/fi";
 
 const ALL_STEPS = [
@@ -23,6 +24,7 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -390,9 +392,18 @@ export default function SignUpForm() {
 
                   <div className="space-y-1 md:col-span-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Create Secure Password *</label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange}
-                      placeholder="Minimum 6 characters"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium transition-all" required />
+                    <div className="relative">
+                      <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange}
+                        placeholder="Minimum 6 characters"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 pr-12 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium transition-all" required />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-emerald-500 transition-colors"
+                      >
+                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      </button>
+                    </div>
                   </div>
 
 

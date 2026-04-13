@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
+import { FiUser, FiLock, FiAlertCircle, FiEye, FiEyeOff } from "react-icons/fi";
 import { getApiBase } from "@/utils/apiBase";
 import { adminLogin } from "@/utils/adminApi";
 
@@ -12,6 +12,7 @@ export default function SignInForm() {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -106,14 +107,21 @@ export default function SignInForm() {
               <FiLock className="text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-2xl pl-12 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-emerald-500 transition-colors"
+            >
+              {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+            </button>
           </div>
         </div>
 

@@ -6,13 +6,24 @@ import Image from 'next/image';
 import { getApiBase } from '@/utils/apiBase';
 import Link from 'next/link';
 import { formatDate } from '@/utils/formatDate';
-import { FiPhone, FiCalendar, FiUser, FiHeart, FiUsers, FiAward } from 'react-icons/fi';
+import { FiPhone, FiCalendar, FiUser, FiHeart, FiUsers, FiAward, FiLogOut } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+
 
 export default function MemberProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const handleLogout = () => {
+    localStorage.removeItem('member_token');
+    localStorage.removeItem('member_info');
+    localStorage.removeItem('adminToken');
+    router.push('/Auth/SignIn');
+  };
+
 
   useEffect(() => {
     const fetchMember = async () => {
@@ -111,6 +122,9 @@ export default function MemberProfilePage() {
                     <Link href={`/Members/${params.id}/edit`} className="px-6 py-2.5 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:shadow-neutral-400/30 transition-all flex items-center gap-2">
                         Edit Profile
                     </Link>
+                    <button onClick={handleLogout} className="px-6 py-2.5 bg-white text-red-600 rounded-xl font-bold shadow-sm border border-red-100 transition-all hover:bg-red-50 flex items-center gap-2">
+                        <FiLogOut /> Logout
+                    </button>
                 </div>
 
              </div>

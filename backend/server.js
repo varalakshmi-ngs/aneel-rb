@@ -60,6 +60,7 @@ app.use(
         return callback(null, true);
       }
 
+      console.warn(`[CORS REJECTED] Origin: ${origin}, Allowed: ${allowedOrigins.join(', ')}`);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -121,7 +122,10 @@ function authenticateToken(req, res, next) {
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
+    if (err) {
+      console.warn(`[AUTH FAILED] Token verification error: ${err.message}. Token suffix: ...${token.slice(-10)}`);
+      return res.status(403).json({ message: 'Invalid token' });
+    }
     req.user = user;
     next();
   });
@@ -565,9 +569,13 @@ async function initializeDatabase() {
 }
 
 function generateToken(user) {
-  console.log('Generating token for user:', user.username);
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '12h' });
-  console.log('Token generated successfully');
+  console.log('Generating token for admin user:', user.username);
+  const token = jwt.sign(
+    { id: user.id, username: user.username, role: 'admin' }, 
+    JWT_SECRET, 
+    { expiresIn: '12h' }
+  );
+  console.log('Admin token generated successfully');
   return token;
 }
 
@@ -1072,7 +1080,7 @@ app.delete('/api/church-pastors/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/members', async (req, res) => {
+app.get('/api/legacy-members', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM members ORDER BY created_at DESC');
     res.json(rows);
@@ -1082,7 +1090,7 @@ app.get('/api/members', async (req, res) => {
   }
 });
 
-app.post('/api/members', authenticateToken, async (req, res) => {
+app.post('/api/legacy-members', authenticateToken, async (req, res) => {
   try {
     const { name, role, bio, photo_url, email, phone, address } = req.body;
     await pool.query(
@@ -1096,7 +1104,7 @@ app.post('/api/members', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/members/:id', authenticateToken, async (req, res) => {
+app.put('/api/legacy-members/:id', authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
     const { name, role, bio, photo_url, email, phone, address } = req.body;
@@ -1111,7 +1119,7 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/members/:id', authenticateToken, async (req, res) => {
+app.delete('/api/legacy-members/:id', authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
     await pool.query('DELETE FROM members WHERE id = ?', [id]);
@@ -1212,6 +1220,9 @@ app.get('/api/fix-upload-urls', async (req, res) => {
       church_pastors: ['image_url'],
       members: ['photo_url'],
       pcc_members: ['photo_url'],
+      registered_members: ['photo_url'],
+      member_spouses: ['photo_url'],
+      member_children: ['photo_url']
     };
 
     for (const [table, columns] of Object.entries(tableColumns)) {
@@ -1455,14 +1466,16 @@ app.get('/api/members/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Fetch base member info
     const [memberRows] = await pool.query('SELECT id, first_name, surname, gender, dob, mobile_number, photo_url, marital_status, status, created_at FROM registered_members WHERE id = ?', [id]);
     
     if (memberRows.length === 0) {
+      console.warn(`[GET MEMBER] ID ${id} not found`);
       return res.status(404).json({ message: 'Member not found' });
     }
     
     const member = memberRows[0];
+    console.log(`[GET MEMBER] ID ${id} found. Status: ${member.status}, Marital: ${member.marital_status}`);
+
     
     // Fetch spouse info
     const [spouseRows] = await pool.query('SELECT * FROM member_spouses WHERE member_id = ?', [id]);
@@ -1529,8 +1542,9 @@ app.put('/api/members/:id', authenticateToken, upload.fields([
       baptism_date, confirmation_date, joining_date
     } = req.body;
 
-    // Authorization check: Only the user themselves or an admin can update
+    console.log(`[AUTH CHECK] Requester ID: ${req.user.id}, Role: ${req.user.role}, Target ID: ${id}`);
     if (req.user.id != id && req.user.role !== 'admin') {
+      console.warn(`[AUTH FAILED] User ${req.user.id} (${req.user.role}) attempted to update member ${id}`);
       return res.status(403).json({ message: 'Unauthorized to update this profile' });
     }
 
@@ -1716,7 +1730,11 @@ app.delete('/api/admin/members/:id', authenticateToken, async (req, res) => {
 
 app.use((err, req, res, next) => {
   if (err && err.message === 'Not allowed by CORS') {
+    console.error(`[403 ERROR] CORS rejection for ${req.method} ${req.url}. Origin: ${req.get('origin')}`);
     return res.status(403).json({ message: err.message });
+  }
+  if (res.statusCode === 403) {
+    console.error(`[403 ERROR] Forbidden response for ${req.method} ${req.url}`);
   }
   return next(err);
 });

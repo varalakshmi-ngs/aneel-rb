@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getApiBase } from '@/utils/apiBase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiHeart, FiUsers, FiBook, FiCheck, FiChevronRight, FiChevronLeft, FiSave, FiX, FiPlus, FiTrash2, FiCamera } from 'react-icons/fi';
+import { FiUser, FiHeart, FiUsers, FiBook, FiCheck, FiChevronRight, FiChevronLeft, FiSave, FiX, FiPlus, FiTrash2, FiCamera, FiLogOut } from 'react-icons/fi';
 import Link from 'next/link';
 
 const ALL_STEPS = [
@@ -23,6 +23,13 @@ export default function EditProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('member_token');
+    localStorage.removeItem('member_info');
+    localStorage.removeItem('adminToken');
+    router.push('/Auth/SignIn');
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -125,7 +132,7 @@ export default function EditProfilePage() {
     setError('');
 
     try {
-      const token = localStorage.getItem('member_token');
+      const token = localStorage.getItem('member_token') || localStorage.getItem('adminToken');
       const submitData = new FormData();
 
       Object.keys(formData).forEach(key => {
@@ -206,9 +213,14 @@ export default function EditProfilePage() {
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Edit Profile</h1>
             <p className="text-gray-500 font-medium">Update your membership information</p>
           </div>
-          <Link href={`/Members/${params.id}`} className="p-3 bg-white text-gray-400 hover:text-gray-900 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
-            <FiX size={24} />
-          </Link>
+          <div className="flex gap-3">
+            <button onClick={handleLogout} className="p-3 bg-white text-red-400 hover:text-red-600 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+              <FiLogOut size={18} /> Logout
+            </button>
+            <Link href={`/Members/${params.id}`} className="p-3 bg-white text-gray-400 hover:text-gray-900 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
+              <FiX size={24} />
+            </Link>
+          </div>
         </div>
 
         {/* Wizard Header */}
