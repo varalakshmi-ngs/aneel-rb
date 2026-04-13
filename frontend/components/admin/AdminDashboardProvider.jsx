@@ -60,10 +60,7 @@ const initialEventForm = {
 
 const initialGalleryForm = {
   id: null,
-  title: '',
-  description: '',
   image_url: '',
-  category: '',
 };
 
 const initialPccForm = {
@@ -344,10 +341,7 @@ export function AdminDashboardProvider({ children }) {
   function editGalleryItem(item) {
     setGalleryForm({
       id: item.id,
-      title: item.title || '',
-      description: item.description || '',
       image_url: item.image_url || '',
-      category: item.category || '',
     });
   }
 

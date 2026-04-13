@@ -341,38 +341,11 @@ export function GallerySection({
         <div>
           <form onSubmit={handleGallerySubmit} className="bg-gray-50 rounded-lg p-6">
             <h4 className="text-lg font-medium text-gray-900 mb-4">
-              {galleryForm.id ? 'Edit Gallery Item' : 'Add New Gallery Item'}
+              {galleryForm.id ? 'Edit Gallery Image' : 'Upload Gallery Image'}
             </h4>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  value={galleryForm.title}
-                  onChange={(e) => setGalleryForm({ ...galleryForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <input
-                  value={galleryForm.category}
-                  onChange={(e) => setGalleryForm({ ...galleryForm, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Events, Church, Community"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  rows={3}
-                  value={galleryForm.description}
-                  onChange={(e) => setGalleryForm({ ...galleryForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
               <ImageUploadInput
-                label="Image"
+                label="Gallery Image"
                 value={galleryForm.image_url}
                 onChange={(url) => setGalleryForm({ ...galleryForm, image_url: url })}
                 token={token}
@@ -400,15 +373,9 @@ export function GallerySection({
                       {item.image_url && (
                         <img
                           src={item.image_url}
-                          alt={item.title}
+                          alt="Gallery image"
                           className="w-full h-32 object-cover rounded-md mb-3"
                         />
-                      )}
-                      <h5 className="text-sm font-medium text-gray-900 mb-1">{item.title}</h5>
-                      {item.category && (
-                        <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full inline-block mb-2">
-                          {item.category}
-                        </p>
                       )}
                       <div className="flex space-x-2">
                         <button
