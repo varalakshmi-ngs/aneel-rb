@@ -122,9 +122,9 @@ export default function MemberProfilePage() {
                     <Link href={`/Members/${params.id}/edit`} className="px-6 py-2.5 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:shadow-neutral-400/30 transition-all flex items-center gap-2">
                         Edit Profile
                     </Link>
-                    <button onClick={handleLogout} className="px-6 py-2.5 bg-white text-red-600 rounded-xl font-bold shadow-sm border border-red-100 transition-all hover:bg-red-50 flex items-center gap-2">
+                    {/* <button onClick={handleLogout} className="px-6 py-2.5 bg-white text-red-600 rounded-xl font-bold shadow-sm border border-red-100 transition-all hover:bg-red-50 flex items-center gap-2">
                         <FiLogOut /> Logout
-                    </button>
+                    </button> */}
                 </div>
 
              </div>
