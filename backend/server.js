@@ -172,6 +172,27 @@ function sanitizeDate(dateStr) {
   return dateStr;
 }
 
+function normalizeDateValue(value, preserveTime = false) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return preserveTime ? trimmed : trimmed;
+  }
+  if (value instanceof Date) {
+    return preserveTime
+      ? value.toISOString().replace(/\.\d+Z$/, 'Z')
+      : value.toISOString().split('T')[0];
+  }
+  try {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return preserveTime ? parsed.toISOString().replace(/\.\d+Z$/, 'Z') : parsed.toISOString().split('T')[0];
+    }
+  } catch {}
+  return value;
+}
+
 function normalizeUploadUrl(url, req) {
 
   if (!url || typeof url !== 'string') return url;
@@ -1454,6 +1475,27 @@ app.get('/api/members/:id', async (req, res) => {
     // Fetch church records
     const [churchRows] = await pool.query('SELECT * FROM member_church_records WHERE member_id = ?', [id]);
     member.church_records = churchRows.length > 0 ? churchRows[0] : null;
+
+    member.dob = normalizeDateValue(member.dob);
+    member.created_at = normalizeDateValue(member.created_at, true);
+
+    if (member.spouse) {
+      member.spouse.dob = normalizeDateValue(member.spouse.dob);
+      member.spouse.marriage_date = normalizeDateValue(member.spouse.marriage_date);
+    }
+
+    if (Array.isArray(member.children)) {
+      member.children = member.children.map((child) => ({
+        ...child,
+        dob: normalizeDateValue(child.dob),
+      }));
+    }
+
+    if (member.church_records) {
+      member.church_records.baptism_date = normalizeDateValue(member.church_records.baptism_date);
+      member.church_records.confirmation_date = normalizeDateValue(member.church_records.confirmation_date);
+      member.church_records.joining_date = normalizeDateValue(member.church_records.joining_date);
+    }
 
     console.log(`GET /api/members/${id} response:`, {
       id: member.id,
