@@ -11,15 +11,15 @@ const tabs = [
   { key: 'events', label: 'Events' },
   { key: 'gallery', label: 'Gallery' },
   { key: 'pastors', label: 'Pastors' },
-  { key: 'lookup', label: 'Manage PCC Registrations' },
   { key: 'members', label: 'Members' },
+  { key: 'approvals', label: 'Member Approvals' },
   { key: 'contact', label: 'Contact Messages' },
   
   // { key: 'uploads', label: 'Uploads' },
 ];
 
 function AdminDashboardShellContent({ children }) {
-  const { gallery, events, contacts, pccMembers, statusMessage, loading } = useAdminDashboard();
+  const { gallery, events, contacts, registeredMembers, statusMessage, loading } = useAdminDashboard();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -41,7 +41,7 @@ function AdminDashboardShellContent({ children }) {
           <p className="text-gray-600">Here&apos;s what&apos;s happening with your church.</p>
         </div>
 
-        <AdminDashboardStats galleryCount={gallery.length} eventsCount={events.length} contactsCount={contacts.length} pccCount={pccMembers?.length || 0} />
+        <AdminDashboardStats galleryCount={gallery.length} eventsCount={events.length} contactsCount={contacts.length} pccCount={registeredMembers?.length || 0} />
 
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">

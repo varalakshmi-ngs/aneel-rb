@@ -19,6 +19,16 @@ const nextConfig = {
       },
       {
         protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/api/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+        pathname: '/api/uploads/**',
+      },
+      {
+        protocol: 'http',
         hostname: '127.0.0.1',
         pathname: '/uploads/**',
       },
@@ -26,6 +36,16 @@ const nextConfig = {
         protocol: 'https',
         hostname: '127.0.0.1',
         pathname: '/uploads/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        pathname: '/api/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '127.0.0.1',
+        pathname: '/api/uploads/**',
       },
       {
         protocol: 'https',

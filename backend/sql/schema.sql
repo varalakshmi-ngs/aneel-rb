@@ -88,3 +88,47 @@ CREATE TABLE IF NOT EXISTS uploads (
   url VARCHAR(1000) NOT NULL,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS registered_members (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(255) NOT NULL,
+  surname VARCHAR(255) NOT NULL,
+  gender ENUM('Male', 'Female', 'Other') NOT NULL,
+  dob DATE NOT NULL,
+  mobile_number VARCHAR(50) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  photo_url VARCHAR(500),
+  marital_status ENUM('Single', 'Married') NOT NULL,
+  status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS member_spouses (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  first_name VARCHAR(255) NOT NULL,
+  surname VARCHAR(255) NOT NULL,
+  dob DATE NOT NULL,
+  photo_url VARCHAR(500),
+  marriage_date DATE,
+  FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS member_children (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  gender ENUM('Male', 'Female', 'Other') NOT NULL,
+  dob DATE NOT NULL,
+  photo_url VARCHAR(500),
+  FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS member_church_records (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  baptism_date DATE,
+  confirmation_date DATE,
+  joining_date DATE,
+  FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
+);

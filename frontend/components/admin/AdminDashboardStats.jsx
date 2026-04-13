@@ -74,7 +74,7 @@ export default function AdminDashboardStats({ galleryCount, eventsCount, contact
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">PCC Registrations</dt>
+                <dt className="text-sm font-medium text-gray-500 truncate">Registered Members</dt>
                 <dd className="text-lg font-medium text-gray-900">{pccCount}</dd>
               </dl>
             </div>

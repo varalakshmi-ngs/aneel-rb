@@ -1,12 +1,20 @@
-const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL || (process.env.NODE_ENV === 'production' ? 'https://robochurch.nuhvin.com/api' : '/api');
+import { getApiBase } from '@/utils/apiBase';
+
+const API_BASE = getApiBase();
 
 async function fetchJson(path) {
   const res = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || `Failed to fetch ${path}`);
+  const contentType = res.headers.get('content-type') || '';
+  let data = {};
+
+  if (contentType.includes('application/json')) {
+    data = await res.json().catch(() => ({}));
   }
-  return res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || `Failed to fetch ${path}`);
+  }
+  return data;
 }
 
 export async function fetchHomeSections() {

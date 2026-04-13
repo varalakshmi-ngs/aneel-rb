@@ -160,8 +160,24 @@ function getBaseUrl(req) {
   return `${protocol}://${host}`;
 }
 
+function sanitizeDate(dateStr) {
+  if (!dateStr || dateStr === '' || dateStr === 'null' || dateStr === 'undefined' || dateStr === '0000-00-00') {
+    return null;
+  }
+  return dateStr;
+}
+
 function normalizeUploadUrl(url, req) {
+
   if (!url || typeof url !== 'string') return url;
+  
+  const baseUrl = getBaseUrl(req);
+
+  // If it's a relative path starting with /uploads, make it absolute using current host
+  if (url.startsWith('/uploads/')) {
+    return `${baseUrl}/api${url}`;
+  }
+
   try {
     const parsed = new URL(url);
     const currentProtocol = getProtocol(req);
@@ -169,6 +185,19 @@ function normalizeUploadUrl(url, req) {
 
     // Convert localhost URLs to the externally visible host.
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      parsed.protocol = currentProtocol + ':';
+      parsed.hostname = currentHost.split(':')[0];
+      if (currentHost.includes(':')) parsed.port = currentHost.split(':')[1];
+      else parsed.port = '';
+    }
+
+    // In local development, rewrite production upload hostnames to the current backend host.
+    const knownProductionUploadHosts = ['robochurch.nuhvin.com', 'www.robochurch.nuhvin.com'];
+    if (
+      !isProduction &&
+      knownProductionUploadHosts.includes(parsed.hostname) &&
+      parsed.pathname.startsWith('/api/uploads')
+    ) {
       parsed.protocol = currentProtocol + ':';
       parsed.hostname = currentHost.split(':')[0];
       if (currentHost.includes(':')) parsed.port = currentHost.split(':')[1];
@@ -186,13 +215,24 @@ function normalizeUploadUrl(url, req) {
 
     return parsed.toString();
   } catch {
-    // Leave invalid URLs unchanged.
+    // If it's not a valid absolute URL but contains 'uploads/', try to fix it
+    if (url.includes('uploads/')) {
+        const parts = url.split('uploads/');
+        return `${baseUrl}/api/uploads/${parts[parts.length - 1]}`;
+    }
   }
   return url;
 }
 
 function normalizeStoredUrl(url) {
   if (!url || typeof url !== 'string') return url;
+
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL || process.env.BACKEND_URL;
+
+  // If it's a relative path starting with /uploads, make it absolute using PUBLIC_BASE_URL
+  if (url.startsWith('/uploads/') && publicBaseUrl) {
+    return `${publicBaseUrl}/api${url}`;
+  }
 
   try {
     const parsed = new URL(url);
@@ -222,7 +262,11 @@ function normalizeStoredUrl(url) {
 
     return parsed.toString();
   } catch {
-    // Leave invalid URLs unchanged.
+    // If it's not a valid absolute URL but contains 'uploads/', try to fix it
+    if (url.includes('uploads/') && publicBaseUrl) {
+        const parts = url.split('uploads/');
+        return `${publicBaseUrl}/api/uploads/${parts[parts.length - 1]}`;
+    }
   }
 
   return url;
@@ -423,6 +467,58 @@ async function initializeDatabase() {
         filename VARCHAR(500) NOT NULL,
         url VARCHAR(1000) NOT NULL,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS registered_members (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(255) NOT NULL,
+        surname VARCHAR(255) NOT NULL,
+        gender ENUM('Male', 'Female', 'Other') NOT NULL,
+        dob DATE NOT NULL,
+        mobile_number VARCHAR(50) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        photo_url VARCHAR(500),
+        marital_status ENUM('Single', 'Married') NOT NULL,
+        status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS member_spouses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        first_name VARCHAR(255) NOT NULL,
+        surname VARCHAR(255) NOT NULL,
+        dob DATE NOT NULL,
+        photo_url VARCHAR(500),
+        marriage_date DATE,
+        FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS member_children (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        gender ENUM('Male', 'Female', 'Other') NOT NULL,
+        dob DATE NOT NULL,
+        photo_url VARCHAR(500),
+        FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS member_church_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        baptism_date DATE,
+        confirmation_date DATE,
+        joining_date DATE,
+        FOREIGN KEY (member_id) REFERENCES registered_members(id) ON DELETE CASCADE
       ) ENGINE=InnoDB;
     `);
 
@@ -1127,6 +1223,413 @@ app.get('/api/fix-upload-urls', async (req, res) => {
   } catch (error) {
     console.error('Error updating URLs:', error);
     res.status(500).json({ message: 'Failed to update URLs', error: error.message });
+  }
+});
+
+// --- Member Authentication & Registration APIs ---
+const otpStorage = new Map(); // mobile -> { otp, expiry }
+
+app.post('/api/members/send-otp', async (req, res) => {
+  const { mobile_number } = req.body;
+  if (!mobile_number) return res.status(400).json({ message: 'Mobile number is required' });
+
+  const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
+  const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+  otpStorage.set(mobile_number, { otp, expiry });
+
+  console.log(`[SIMULATED OTP] Mobile: ${mobile_number}, OTP: ${otp}`);
+  // In development, we can return the OTP directly for ease of testing
+  res.json({ message: 'OTP sent successfully', otp: process.env.NODE_ENV !== 'production' ? otp : undefined });
+});
+
+app.post('/api/members/verify-otp', async (req, res) => {
+  const { mobile_number, otp } = req.body;
+  
+  if (!mobile_number || !otp) return res.status(400).json({ message: 'Mobile number and OTP are required' });
+
+  const storedData = otpStorage.get(mobile_number);
+  if (!storedData) return res.status(400).json({ message: 'OTP not requested for this number' });
+
+  if (Date.now() > storedData.expiry) {
+    otpStorage.delete(mobile_number);
+    return res.status(400).json({ message: 'OTP has expired' });
+  }
+
+  if (storedData.otp !== otp) {
+    return res.status(400).json({ message: 'Invalid OTP' });
+  }
+
+  // Verification successful
+  otpStorage.delete(mobile_number);
+  res.json({ message: 'OTP verified successfully' });
+});
+
+app.post('/api/members/register', upload.fields([
+  { name: 'profile_photo', maxCount: 1 },
+  { name: 'spouse_photo', maxCount: 1 },
+  { name: 'child_photos', maxCount: 10 }
+]), async (req, res) => {
+  let connection;
+  try {
+    const {
+      first_name, surname, gender, dob, mobile_number, password, marital_status,
+      spouse_first_name, spouse_surname, spouse_dob, marriage_date,
+      children, // JSON string array of objects
+      baptism_date, confirmation_date, joining_date
+    } = req.body;
+
+    const clean_dob = sanitizeDate(dob);
+    const clean_spouse_dob = sanitizeDate(spouse_dob);
+    const clean_marriage_date = sanitizeDate(marriage_date);
+    const clean_baptism_date = sanitizeDate(baptism_date);
+    const clean_confirmation_date = sanitizeDate(confirmation_date);
+    const clean_joining_date = sanitizeDate(joining_date);
+
+
+    // Validate main required fields
+    if (!first_name || !surname || !gender || !dob || !mobile_number || !password || !marital_status) {
+      return res.status(400).json({ message: 'Missing required basic details' });
+    }
+
+    // Validate Church Records (Step 4) are strictly populated
+    if (!baptism_date || !confirmation_date || !joining_date) {
+      return res.status(400).json({ message: 'Missing required church records. All dates are mandatory for registration.' });
+    }
+
+    // Check if mobile number already exists
+    const [existing] = await pool.query('SELECT id FROM registered_members WHERE mobile_number = ?', [mobile_number]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Mobile number is already registered' });
+    }
+
+    let profile_photo_url = null;
+    if (req.files && req.files['profile_photo']) {
+      profile_photo_url = `/uploads/${req.files['profile_photo'][0].filename}`;
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Insert Member
+    const [memberResult] = await connection.query(
+      `INSERT INTO registered_members (first_name, surname, gender, dob, mobile_number, password_hash, photo_url, marital_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [first_name, surname, gender, dob, mobile_number, password_hash, profile_photo_url, marital_status]
+    );
+
+    const memberId = memberResult.insertId;
+
+    // Insert Spouse
+    if (marital_status === 'Married' && spouse_first_name && spouse_surname && spouse_dob) {
+      let spouse_photo_url = null;
+      if (req.files && req.files['spouse_photo']) {
+        spouse_photo_url = `/uploads/${req.files['spouse_photo'][0].filename}`;
+      }
+      
+      await connection.query(
+        `INSERT INTO member_spouses (member_id, first_name, surname, dob, photo_url, marriage_date)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [memberId, spouse_first_name, spouse_surname, spouse_dob, spouse_photo_url, marriage_date || null]
+      );
+    }
+
+    // Insert Children
+    if (children) {
+      try {
+        const parsedChildren = JSON.parse(children); // Ensure frontend sends stringified array of objects
+        if (Array.isArray(parsedChildren)) {
+          let childPhotoIndex = 0;
+          for (const child of parsedChildren) {
+            let child_photo_url = null;
+            if (child.has_photo && req.files && req.files['child_photos'] && req.files['child_photos'][childPhotoIndex]) {
+              child_photo_url = `/uploads/${req.files['child_photos'][childPhotoIndex].filename}`;
+              childPhotoIndex++;
+            }
+            if (child.name && child.gender && child.dob) {
+              await connection.query(
+                `INSERT INTO member_children (member_id, name, gender, dob, photo_url) VALUES (?, ?, ?, ?, ?)`,
+                [memberId, child.name, child.gender, child.dob, child_photo_url]
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing children data', e);
+      }
+    }
+
+    // Insert Church Records
+    if (clean_baptism_date || clean_confirmation_date || clean_joining_date) {
+      await connection.query(
+        `INSERT INTO member_church_records (member_id, baptism_date, confirmation_date, joining_date)
+         VALUES (?, ?, ?, ?)`,
+        [memberId, clean_baptism_date, clean_confirmation_date, clean_joining_date]
+      );
+    }
+
+
+    await connection.commit();
+    res.json({ message: 'Registration successful' });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Registration failed', error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+app.post('/api/members/login', async (req, res) => {
+  try {
+    const { mobile_number, password } = req.body;
+    if (!mobile_number || !password) {
+      return res.status(400).json({ message: 'Mobile number and password are required' });
+    }
+
+    const [rows] = await pool.query('SELECT * FROM registered_members WHERE mobile_number = ?', [mobile_number]);
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = rows[0];
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (user.status === 'Pending') {
+      return res.status(403).json({ message: 'Your account is pending admin approval. Please wait until an administrator reviews your application.' });
+    } else if (user.status === 'Rejected') {
+      return res.status(403).json({ message: 'Your registration was rejected. Please contact administration.' });
+    }
+
+    const token = jwt.sign({ id: user.id, mobile_number: user.mobile_number, role: 'member' }, JWT_SECRET, { expiresIn: '12h' });
+    
+    const userInfo = {
+      id: user.id,
+      first_name: user.first_name,
+      surname: user.surname,
+      mobile_number: user.mobile_number,
+      photo_url: user.photo_url
+    };
+
+    res.json({ message: 'Login successful', token, user: userInfo });
+  } catch (error) {
+    console.error('Member login error:', error);
+    res.status(500).json({ message: 'Login failed', error: error.message });
+  }
+});
+
+// GET Member details by ID (Public for profile viewing or protected)
+app.get('/api/members/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Fetch base member info
+    const [memberRows] = await pool.query('SELECT id, first_name, surname, gender, dob, mobile_number, photo_url, marital_status, status, created_at FROM registered_members WHERE id = ?', [id]);
+    
+    if (memberRows.length === 0) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+    
+    const member = memberRows[0];
+    
+    // Fetch spouse info
+    const [spouseRows] = await pool.query('SELECT * FROM member_spouses WHERE member_id = ?', [id]);
+    member.spouse = spouseRows.length > 0 ? spouseRows[0] : null;
+    
+    // Fetch children
+    const [childrenRows] = await pool.query('SELECT * FROM member_children WHERE member_id = ?', [id]);
+    member.children = childrenRows;
+    
+    // Fetch church records
+    const [churchRows] = await pool.query('SELECT * FROM member_church_records WHERE member_id = ?', [id]);
+    member.church_records = churchRows.length > 0 ? churchRows[0] : null;
+    
+    res.json(member);
+  } catch (error) {
+    console.error('Error fetching member profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// UPDATE Member details by ID
+app.put('/api/members/:id', authenticateToken, upload.fields([
+  { name: 'profile_photo', maxCount: 1 },
+  { name: 'spouse_photo', maxCount: 1 },
+  { name: 'child_photos', maxCount: 10 }
+]), async (req, res) => {
+  let connection;
+  try {
+    const { id } = req.params;
+    const {
+      first_name, surname, gender, dob, marital_status,
+      spouse_first_name, spouse_surname, spouse_dob, marriage_date,
+      children, // JSON string array
+      baptism_date, confirmation_date, joining_date
+    } = req.body;
+
+    // Authorization check: Only the user themselves or an admin can update
+    if (req.user.id != id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Unauthorized to update this profile' });
+    }
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Update Basic Info
+    let profile_photo_url = req.body.photo_url || null; // Fallback to existing if provided as string
+    if (req.files && req.files['profile_photo']) {
+      profile_photo_url = `/uploads/${req.files['profile_photo'][0].filename}`;
+    }
+
+    await connection.query(
+      `UPDATE registered_members SET first_name = ?, surname = ?, gender = ?, dob = ?, photo_url = ?, marital_status = ?
+       WHERE id = ?`,
+      [first_name, surname, gender, dob, profile_photo_url, marital_status, id]
+    );
+
+    // 2. Update Spouse Info
+    // First, check if spouse exists
+    const [existingSpouse] = await connection.query('SELECT id FROM member_spouses WHERE member_id = ?', [id]);
+    
+    if (marital_status === 'Married') {
+      let spouse_photo_url = req.body.spouse_photo_url || null;
+      if (req.files && req.files['spouse_photo']) {
+        spouse_photo_url = `/uploads/${req.files['spouse_photo'][0].filename}`;
+      }
+
+      if (existingSpouse.length > 0) {
+        await connection.query(
+          `UPDATE member_spouses SET first_name = ?, surname = ?, dob = ?, photo_url = ?, marriage_date = ?
+           WHERE member_id = ?`,
+          [spouse_first_name, spouse_surname, spouse_dob, spouse_photo_url, marriage_date || null, id]
+        );
+      } else {
+        await connection.query(
+          `INSERT INTO member_spouses (member_id, first_name, surname, dob, photo_url, marriage_date)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [id, spouse_first_name, spouse_surname, spouse_dob, spouse_photo_url, marriage_date || null]
+        );
+      }
+    } else {
+      // If Single, delete spouse records if they exist
+      await connection.query('DELETE FROM member_spouses WHERE member_id = ?', [id]);
+    }
+
+    // 3. Update Children (Delete and Re-insert is often cleaner for list updates)
+    if (marital_status === 'Married' && children) {
+        await connection.query('DELETE FROM member_children WHERE member_id = ?', [id]);
+        try {
+            const parsedChildren = JSON.parse(children);
+            if (Array.isArray(parsedChildren)) {
+                let childPhotoIndex = 0;
+                for (const child of parsedChildren) {
+                    let child_photo_url = child.photo_url || null;
+                    if (child.has_photo && req.files && req.files['child_photos'] && req.files['child_photos'][childPhotoIndex]) {
+                        child_photo_url = `/uploads/${req.files['child_photos'][childPhotoIndex].filename}`;
+                        childPhotoIndex++;
+                    }
+                    if (child.name && child.gender && child.dob) {
+                        await connection.query(
+                            `INSERT INTO member_children (member_id, name, gender, dob, photo_url) VALUES (?, ?, ?, ?, ?)`,
+                            [id, child.name, child.gender, child.dob, child_photo_url]
+                        );
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error updating children data', e);
+        }
+    } else {
+        await connection.query('DELETE FROM member_children WHERE member_id = ?', [id]);
+    }
+
+    // 4. Update Church Records
+    const clean_baptism_date = sanitizeDate(baptism_date);
+    const clean_confirmation_date = sanitizeDate(confirmation_date);
+    const clean_joining_date = sanitizeDate(joining_date);
+
+    const [existingChurch] = await connection.query('SELECT id FROM member_church_records WHERE member_id = ?', [id]);
+    if (existingChurch.length > 0) {
+        await connection.query(
+            `UPDATE member_church_records SET baptism_date = ?, confirmation_date = ?, joining_date = ?
+             WHERE member_id = ?`,
+            [clean_baptism_date, clean_confirmation_date, clean_joining_date, id]
+        );
+    } else {
+        await connection.query(
+            `INSERT INTO member_church_records (member_id, baptism_date, confirmation_date, joining_date)
+             VALUES (?, ?, ?, ?)`,
+            [id, clean_baptism_date, clean_confirmation_date, clean_joining_date]
+        );
+    }
+
+
+    await connection.commit();
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Update failed', error: error.message });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+
+
+// Admin API to fetch pending members
+app.get('/api/admin/members/pending', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM registered_members WHERE status = ? ORDER BY created_at DESC', ['Pending']);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch pending members', error: error.message });
+  }
+});
+
+// Admin API to fetch all registered members
+app.get('/api/admin/members/all', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM registered_members ORDER BY created_at DESC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch all members', error: error.message });
+  }
+});
+
+// Admin API to update member status
+app.put('/api/admin/members/:id/status', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    await pool.query('UPDATE registered_members SET status = ? WHERE id = ?', [status, req.params.id]);
+    res.json({ message: `Member status successfully updated to ${status}` });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update member status', error: error.message });
+  }
+});
+
+// Admin API to delete a member
+app.delete('/api/admin/members/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Cascading delete handles related tables (spouses, children, church records)
+    const [result] = await pool.query('DELETE FROM registered_members WHERE id = ?', [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+    
+    res.json({ message: 'Member and all associated records successfully deleted' });
+  } catch (error) {
+    console.error('Member deletion error:', error);
+    res.status(500).json({ message: 'Failed to delete member', error: error.message });
   }
 });
 

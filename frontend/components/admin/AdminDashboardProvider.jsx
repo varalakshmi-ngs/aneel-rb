@@ -30,6 +30,9 @@ import {
   createChurchPastor,
   updateChurchPastor,
   deleteChurchPastor,
+  fetchAllRegisteredMembers,
+  updateRegisteredMemberStatus,
+  deleteRegisteredMember,
 } from '@/utils/adminApi';
 
 const AdminDashboardContext = createContext(null);
@@ -132,6 +135,7 @@ export function AdminDashboardProvider({ children }) {
 
   const [contacts, setContacts] = useState([]);
   const [uploads, setUploads] = useState([]);
+  const [registeredMembers, setRegisteredMembers] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [lookupForm, setLookupForm] = useState(initialLookupForm);
   const [lookupCreateResult, setLookupCreateResult] = useState(null);
@@ -157,7 +161,17 @@ export function AdminDashboardProvider({ children }) {
 
     setLoading(true);
     try {
-      const [homeData, eventsData, galleryData, pccData, membersData, contactsData, uploadsData, churchPastorsData] = await Promise.all([
+      const [
+        homeData,
+        eventsData,
+        galleryData,
+        pccData,
+        membersData,
+        contactsData,
+        uploadsData,
+        churchPastorsData,
+        registeredMembersData,
+      ] = await Promise.all([
         fetchHomeSections(token),
         fetchEvents(token),
         fetchGallery(token),
@@ -166,6 +180,7 @@ export function AdminDashboardProvider({ children }) {
         fetchContacts(token),
         fetchUploads(token),
         fetchChurchPastors(token),
+        fetchAllRegisteredMembers(token),
       ]);
 
       setHomeSections(homeData);
@@ -176,6 +191,7 @@ export function AdminDashboardProvider({ children }) {
       setContacts(contactsData);
       setUploads(uploadsData);
       setChurchPastors(churchPastorsData);
+      setRegisteredMembers(registeredMembersData);
 
       if (homeData.length > 0) {
         const first = homeData[0];
@@ -195,7 +211,7 @@ export function AdminDashboardProvider({ children }) {
         setStatusMessage('Session expired. Please sign in again.');
         localStorage.removeItem('adminToken');
         setToken('');
-        router.push('/admin/login');
+        router.push('/login');
         return;
       }
       setStatusMessage(error.message || 'Unable to load admin data.');
@@ -210,7 +226,7 @@ export function AdminDashboardProvider({ children }) {
       if (saved) {
         setToken(saved);
       } else {
-        router.push('/admin/login');
+        router.push('/login');
       }
     }
   }, [router]);
@@ -510,6 +526,30 @@ export function AdminDashboardProvider({ children }) {
     }
   }
 
+  async function handleUpdateRegisteredMemberStatus(id, newStatus) {
+    if (!token) return;
+    setStatusMessage(`Updating status to ${newStatus}...`);
+    try {
+      await updateRegisteredMemberStatus(token, id, newStatus);
+      setStatusMessage(`Member status updated to ${newStatus}.`);
+      await loadAllData();
+    } catch (error) {
+      setStatusMessage(error.message || 'Could not update status.');
+    }
+  }
+
+  async function handleDeleteRegisteredMember(id) {
+    if (!token) return;
+    setStatusMessage('Deleting member and records...');
+    try {
+      await deleteRegisteredMember(token, id);
+      setStatusMessage('Member successfully deleted.');
+      await loadAllData();
+    } catch (error) {
+      setStatusMessage(error.message || 'Could not delete member.');
+    }
+  }
+
   async function handleChurchPastorSubmit(event) {
     event.preventDefault();
     setStatusMessage('Saving church pastor...');
@@ -613,10 +653,10 @@ export function AdminDashboardProvider({ children }) {
         handleChurchPastorSubmit,
         editChurchPastor,
         handleDeleteChurchPastor,
-        uploads,
-        selectedFile,
-        setSelectedFile,
         handleFileUpload,
+        registeredMembers,
+        handleUpdateRegisteredMemberStatus,
+        handleDeleteRegisteredMember,
         lookupForm,
         setLookupForm,
         lookupCreateResult,

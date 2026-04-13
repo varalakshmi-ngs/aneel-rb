@@ -20,7 +20,7 @@ export default function TopBar() {
       localStorage.removeItem("adminToken");
     }
     setIsAdminLoggedIn(false);
-    router.push("/admin/login");
+    router.push("/login");
   };
 
   const isAdminRoute = pathname?.startsWith("/admin");
@@ -69,7 +69,7 @@ export default function TopBar() {
 
       <div className="flex items-center flex-shrink-0">
         {showSignIn && (
-          <Link href="/admin/login" className="inline-flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600">
+          <Link href="/login" className="inline-flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600">
             Sign In
             <Image src="/enter.png" alt="Login" width={20} height={20} className="ml-2" />
           </Link>

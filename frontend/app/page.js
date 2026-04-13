@@ -16,12 +16,23 @@ import React from "react";
 
 import { getApiBase } from "@/utils/apiBase";
 
+async function parseSafeJson(res) {
+  try {
+    const text = await res.text();
+    if (!text) return [];
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Unable to parse JSON response:", error);
+    return [];
+  }
+}
+
 async function getHomeSections() {
   try {
     const API_BASE = getApiBase();
     const res = await fetch(`${API_BASE}/home`, { cache: "no-store" });
     if (!res.ok) return [];
-    return res.json();
+    return parseSafeJson(res);
   } catch (error) {
     console.error("Unable to fetch home sections:", error);
     return [];
@@ -33,7 +44,7 @@ async function getEvents() {
     const API_BASE = getApiBase();
     const res = await fetch(`${API_BASE}/events`, { cache: "no-store" });
     if (!res.ok) return [];
-    return res.json();
+    return parseSafeJson(res);
   } catch (error) {
     console.error("Unable to fetch events:", error);
     return [];

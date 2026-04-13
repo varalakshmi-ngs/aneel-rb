@@ -8,8 +8,7 @@ export function getApiBase() {
     return 'https://robochurch.nuhvin.com/api';
   }
 
-  // In development, use the same origin so deployed builds do not hardcode localhost.
-  // This allows the frontend to call the backend through the current host path.
-  return '/api';
+  // In development, call the backend directly on localhost:4000
+  return 'http://localhost:4000/api';
 }
 

@@ -1,6 +1,25 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+
+function SafeImage({ src, fallback, ...props }) {
+  const [currentSrc, setCurrentSrc] = useState(src || fallback);
+
+  useEffect(() => {
+    setCurrentSrc(src || fallback);
+  }, [src, fallback]);
+
+  return (
+    <Image
+      src={currentSrc}
+      onError={() => {
+        if (currentSrc !== fallback) setCurrentSrc(fallback);
+      }}
+      {...props}
+    />
+  );
+}
 
 export default function Homepage({ heroSection = {} }) {
   const safeText = (value, fallback) => {
@@ -50,8 +69,9 @@ export default function Homepage({ heroSection = {} }) {
     <section className="relative w-full min-h-screen grid grid-cols-1 md:grid-cols-2 overflow-hidden">
       {/* === LEFT SIDE === */}
       <div className="relative flex items-center justify-center text-white overflow-hidden min-h-[85vh] md:min-h-[90vh]">
-        <Image
-          src={hero.image_url || "/images/chruch-07.jpg"}
+        <SafeImage
+          src={hero.image_url}
+          fallback="/images/chruch-07.jpg"
           alt="Church Background"
           fill
           className="object-cover brightness-90"
@@ -76,8 +96,9 @@ export default function Homepage({ heroSection = {} }) {
           {/* Pastor */}
           <div className="flex flex-col items-center justify-center mt-6 lg:mt-0">
             <div className="relative w-38 h-38 sm:w-36 sm:h-36 md:w-44 md:h-44 hover:scale-105 transition-transform duration-500">
-              <Image
+              <SafeImage
                 src={heroPastor.src}
+                fallback="/images/pastor1.webp"
                 alt={heroPastor.name}
                 fill
                 className="object-contain rounded-lg shadow-md"
@@ -120,8 +141,9 @@ export default function Homepage({ heroSection = {} }) {
                               rounded-xl border-4 border-[#F74F22] overflow-hidden shadow-md
                               hover:scale-102 transition-transform duration-300"
                 >
-                  <Image
+                  <SafeImage
                     src={member.src}
+                    fallback="/images/pastor1.webp"
                     alt={member.name}
                     fill
                     className="object-cover"

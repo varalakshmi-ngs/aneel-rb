@@ -103,6 +103,11 @@ export default function Pastors() {
                 <img
                   src={member.img}
                   alt={member.name}
+                  onError={(e) => {
+                    if (e.currentTarget.src !== '/images/pastor3.jpg') {
+                      e.currentTarget.src = '/images/pastor3.jpg';
+                    }
+                  }}
                   className="w-full h-52 sm:h-56 md:h-60 object-cover transform group-hover:scale-105 transition duration-500 rounded-2xl"
                 />
               </div>

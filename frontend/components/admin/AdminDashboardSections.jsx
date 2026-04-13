@@ -480,305 +480,72 @@ export function ContactSection({ contacts }) {
   );
 }
 
-export function PccSection({
-  pccMembers,
-  pccForm,
-  setPccForm,
-  handlePccSubmit,
-  editPccMember,
-  handleDeletePcc,
-  handlePccStatusChange,
-  token,
-}) {
+/**
+ * A specialized delete button that requires two clicks to confirm.
+ */
+function DeleteConfirmButton({ onDelete, memberName }) {
+  const [confirmStep, setConfirmStep] = useState(0);
+
+  useEffect(() => {
+    if (confirmStep > 0) {
+      const timer = setTimeout(() => setConfirmStep(0), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmStep]);
+
+  if (confirmStep === 0) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmStep(1)}
+        className="p-2 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all flex items-center justify-center"
+        title="Delete Member"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+    );
+  }
+
+  if (confirmStep === 1) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmStep(2)}
+        className="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-all whitespace-nowrap"
+      >
+        Are you sure?
+      </button>
+    );
+  }
+
   return (
-    <div>
-      <div className={`grid grid-cols-1 ${pccForm.id ? 'lg:grid-cols-2' : ''} gap-6`}>
-        {pccForm.id && (
-          <div>
-            <form onSubmit={handlePccSubmit} className="bg-gray-50 rounded-lg p-6 shadow-sm border border-blue-100">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-medium text-blue-900">
-                  Edit PCC Member
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setPccForm({ name: '', role: '', bio: '', photo_url: '', mobile: '', email: '', family_details: [''], social_links: [] })}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                <input
-                  value={pccForm.name}
-                  onChange={(e) => setPccForm({ ...pccForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                <input
-                  value={pccForm.role}
-                  onChange={(e) => setPccForm({ ...pccForm, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-                <textarea
-                  rows={3}
-                  value={pccForm.bio}
-                  onChange={(e) => setPccForm({ ...pccForm, bio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <ImageUploadInput
-                label="Photo"
-                value={pccForm.photo_url}
-                onChange={(url) => setPccForm({ ...pccForm, photo_url: url })}
-                token={token}
-              />
-
-              {pccForm.id && pccForm.passcode && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                  <p className="text-sm font-medium text-blue-800">Generated Passcode</p>
-                  <p className="text-lg font-semibold text-blue-900 mt-1">{pccForm.passcode}</p>
-                  <p className="text-xs text-blue-700 mt-1">This passcode can be used in Member Lookup.</p>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={pccForm.email}
-                  onChange={(e) => setPccForm({ ...pccForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Email address"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
-                <input
-                  type="tel"
-                  value={pccForm.mobile}
-                  onChange={(e) => setPccForm({ ...pccForm, mobile: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Mobile number"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Family Details</label>
-                <div className="space-y-2">
-                  {pccForm.family_details.map((detail, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={detail}
-                        onChange={(e) => {
-                          const nextFamily = [...pccForm.family_details];
-                          nextFamily[index] = e.target.value;
-                          setPccForm({ ...pccForm, family_details: nextFamily });
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Family detail"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextFamily = pccForm.family_details.filter((_, i) => i !== index);
-                          setPccForm({ ...pccForm, family_details: nextFamily.length ? nextFamily : [''] });
-                        }}
-                        className="px-3 py-2 bg-red-500 text-white rounded-md text-sm hover:bg-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPccForm({ ...pccForm, family_details: [...pccForm.family_details, ''] })}
-                  className="mt-2 px-3 py-2 bg-green-500 text-white rounded-md text-sm hover:bg-green-600"
-                >
-                  Add Family Detail
-                </button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Social Links</label>
-                {pccForm.social_links.map((link, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
-                    <select
-                      value={link.platform || ''}
-                      onChange={(e) => {
-                        const newLinks = [...pccForm.social_links];
-                        newLinks[index] = { ...newLinks[index], platform: e.target.value };
-                        setPccForm({ ...pccForm, social_links: newLinks });
-                      }}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="">Platform</option>
-                      <option value="facebook">Facebook</option>
-                      <option value="twitter">Twitter</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="youtube">YouTube</option>
-                    </select>
-                    <input
-                      type="url"
-                      placeholder="URL"
-                      value={link.url || ''}
-                      onChange={(e) => {
-                        const newLinks = [...pccForm.social_links];
-                        newLinks[index] = { ...newLinks[index], url: e.target.value };
-                        setPccForm({ ...pccForm, social_links: newLinks });
-                      }}
-                      className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newLinks = pccForm.social_links.filter((_, i) => i !== index);
-                        setPccForm({ ...pccForm, social_links: newLinks });
-                      }}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPccForm({
-                      ...pccForm,
-                      social_links: [...pccForm.social_links, { platform: '', url: '' }],
-                    });
-                  }}
-                  className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                >
-                  Add Social Link
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                {pccForm.id ? 'Update PCC Member' : 'Create PCC Member'}
-              </button>
-            </div>
-          </form>
-        </div>
-        )}
-
-        <div>
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-4 py-5 sm:p-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">PCC Members</h4>
-              <div className="space-y-3">
-                {pccMembers.length === 0 ? (
-                  <p className="text-sm text-gray-500">No PCC members added yet.</p>
-                ) : (
-                  pccMembers.map((member) => (
-                    <div key={member.id} className="border border-gray-200 rounded-md p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h5 className="text-sm font-medium text-gray-900">{member.name}</h5>
-                          <p className="text-sm text-gray-500">{member.role}</p>
-                          {member.passcode && (
-                            <p className="text-xs text-blue-600 mt-1">Passcode: {member.passcode}</p>
-                          )}
-                          {member.status && (
-                            <p className="mt-1">
-                              <span
-                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                  member.status === 'active'
-                                    ? 'bg-green-100 text-green-800'
-                                    : member.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
-                              >
-                                {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                              </span>
-                            </p>
-                          )}
-                          {(member.email || member.mobile) && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {member.email ? `${member.email}${member.mobile ? ' • ' : ''}` : ''}
-                              {member.mobile ? member.mobile : ''}
-                            </p>
-                          )}
-                          {member.bio && (
-                            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{member.bio}</p>
-                          )}
-                        </div>
-                        <div className="flex flex-col space-y-2 ml-4">
-                          <div className="flex space-x-2">
-                            {member.status !== 'active' && (
-                              <button
-                                type="button"
-                                onClick={() => handlePccStatusChange(member.id, 'active')}
-                                className="text-green-600 hover:text-green-900 text-sm font-medium"
-                              >
-                                Approve
-                              </button>
-                            )}
-                            {member.status !== 'suspended' && member.status !== 'pending' && (
-                              <button
-                                type="button"
-                                onClick={() => handlePccStatusChange(member.id, 'suspended')}
-                                className="text-yellow-600 hover:text-yellow-900 text-sm font-medium"
-                              >
-                                Suspend
-                              </button>
-                            )}
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => editPccMember(member)}
-                              className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeletePcc(member)}
-                              className="text-red-600 hover:text-red-900 text-sm font-medium"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onDelete}
+      className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-all animate-pulse whitespace-nowrap"
+    >
+      Yes, DELETE!
+    </button>
   );
 }
 
-export function LookupSection({ pccMembers, handlePccStatusChange, handleDeletePcc }) {
+export function MembersSection({
+  registeredMembers,
+  handleUpdateRegisteredMemberStatus,
+  handleDeleteRegisteredMember,
+}) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="px-6 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h4 className="text-xl font-bold text-gray-900">Manage PCC Registrations</h4>
-            <p className="text-sm text-gray-500 mt-1">Review, approve, or suspend incoming PCC member registrations seamlessly.</p>
+            <h4 className="text-xl font-bold text-gray-900">Manage Registered Members</h4>
+            <p className="text-sm text-gray-500 mt-1">Review, manage, and delete approved church member accounts.</p>
           </div>
           <div className="bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm text-sm font-medium text-gray-600 flex items-center">
-            Total registrations: <span className="text-blue-600 font-bold ml-2 text-lg">{pccMembers.length}</span>
+            Total Members: <span className="text-blue-600 font-bold ml-2 text-lg">{registeredMembers.length}</span>
           </div>
         </div>
         
@@ -786,114 +553,65 @@ export function LookupSection({ pccMembers, handlePccStatusChange, handleDeleteP
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Applicant</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Contact Info</th>
-                <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Passcode</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Member</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
                 <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider rounded-tr-2xl">Actions</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
-              {pccMembers.length === 0 ? (
+              {registeredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </div>
-                      <p className="text-lg font-semibold text-gray-900">No registrations found</p>
-                      <p className="text-sm text-gray-500 mt-1">There are no pending or active PCC members at the moment.</p>
-                    </div>
+                  <td colSpan={4} className="px-6 py-16 text-center text-gray-500">
+                    No registered members found.
                   </td>
                 </tr>
               ) : (
-                pccMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50/80 transition-colors group">
+                registeredMembers.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50/80 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {member.photo_url ? (
-                          <img className="h-12 w-12 rounded-xl object-cover border border-gray-200 shadow-sm" src={member.photo_url} alt="" />
-                        ) : (
-                          <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm border border-blue-100">
-                            {member.name?.charAt(0) || '?'}
-                          </div>
-                        )}
+                        <div className="h-10 w-10 flex-shrink-0">
+                          {m.photo_url ? (
+                            <img className="h-10 w-10 rounded-full object-cover border border-gray-200" src={m.photo_url} alt="" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                              {m.first_name?.charAt(0)}
+                            </div>
+                          )}
+                        </div>
                         <div className="ml-4">
-                          <div className="text-sm font-bold text-gray-900">{member.name}</div>
-                          <div className="text-xs font-medium text-gray-500 mt-1">{member.role || 'Unspecified Role'}</div>
+                          <div className="text-sm font-bold text-gray-900">{m.first_name} {m.surname}</div>
+                          <div className="text-xs text-gray-500 italic mt-0.5">{m.marital_status}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col space-y-1.5">
-                        <div className="flex items-center text-sm text-gray-700">
-                          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                          {member.email || 'N/A'}
-                        </div>
-                        <div className="flex items-center text-xs font-medium text-gray-500">
-                          <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                          {member.mobile || 'N/A'}
-                        </div>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <div><strong className="text-xs text-gray-400 block mb-0.5">Mobile</strong> {m.mobile_number}</div>
+                      <div className="mt-1"><strong className="text-xs text-gray-400 block mb-0.5">Applied on</strong> {new Date(m.created_at).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="inline-flex px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-800 font-mono tracking-widest border border-gray-200">
-                        {member.passcode || 'N/A'}
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                        m.status === 'Approved' ? 'bg-green-100 text-green-800 border-green-200' : 
+                        m.status === 'Rejected' ? 'bg-red-100 text-red-800 border-red-200' : 
+                        'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      }`}>
+                        {m.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span
-                        className={`inline-flex flex-col items-center justify-center px-4 py-1.5 rounded-full text-xs font-bold border ${
-                          member.status === 'active'
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : member.status === 'pending'
-                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.4)]'
-                            : 'bg-red-50 text-red-700 border-red-200'
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          {member.status === 'active' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></span>}
-                          {member.status === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>}
-                          {member.status === 'suspended' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>}
-                          {member.status ? member.status.toUpperCase() : 'PENDING'}
-                        </div>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <div className="flex items-center justify-end space-x-2">
-                        {member.status !== 'active' && (
-                          <button
-                            type="button"
-                            onClick={() => handlePccStatusChange(member.id, 'active')}
-                            title="Approve"
-                            className="p-2 rounded-xl text-white bg-green-500 hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-sm transform hover:-translate-y-0.5"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
-                          </button>
-                        )}
-                        {member.status !== 'suspended' && member.status !== 'pending' && (
-                          <button
-                            type="button"
-                            onClick={() => handlePccStatusChange(member.id, 'suspended')}
-                            title="Suspend"
-                            className="p-2 rounded-xl text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all shadow-sm transform hover:-translate-y-0.5"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                          </button>
-                        )}
-                        <span className="w-px h-6 bg-gray-200 mx-1"></span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePcc(member)}
-                          className="p-2 rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all"
-                          title="Delete Registration"
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-3">
+                        <select 
+                           value={m.status}
+                           onChange={(e) => handleUpdateRegisteredMemberStatus(m.id, e.target.value)}
+                           className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                        <div className="w-px h-6 bg-gray-200"></div>
+                        <DeleteConfirmButton onDelete={() => handleDeleteRegisteredMember(m.id)} memberName={m.first_name} />
                       </div>
                     </td>
                   </tr>
@@ -901,140 +619,6 @@ export function LookupSection({ pccMembers, handlePccStatusChange, handleDeleteP
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function MembersSection({
-  members,
-  memberForm,
-  setMemberForm,
-  handleMemberSubmit,
-  editMember,
-  handleDeleteMember,
-  token,
-}) {
-  return (
-    <div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <form onSubmit={handleMemberSubmit} className="bg-gray-50 rounded-lg p-6">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">
-              {memberForm.id ? 'Edit Member' : 'Add New Member'}
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                <input
-                  value={memberForm.name}
-                  onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                <input
-                  value={memberForm.role}
-                  onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-                <textarea
-                  rows={3}
-                  value={memberForm.bio}
-                  onChange={(e) => setMemberForm({ ...memberForm, bio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <ImageUploadInput
-                label="Photo"
-                value={memberForm.photo_url}
-                onChange={(url) => setMemberForm({ ...memberForm, photo_url: url })}
-                token={token}
-              />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={memberForm.email}
-                  onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                <input
-                  type="tel"
-                  value={memberForm.phone}
-                  onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                <textarea
-                  rows={2}
-                  value={memberForm.address}
-                  onChange={(e) => setMemberForm({ ...memberForm, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                {memberForm.id ? 'Update Member' : 'Create Member'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div>
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-4 py-5 sm:p-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Members</h4>
-              <div className="space-y-3">
-                {members.length === 0 ? (
-                  <p className="text-sm text-gray-500">No members added yet.</p>
-                ) : (
-                  members.map((member) => (
-                    <div key={member.id} className="border border-gray-200 rounded-md p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h5 className="text-sm font-medium text-gray-900">{member.name}</h5>
-                          <p className="text-sm text-gray-500">{member.role}</p>
-                          {member.bio && (
-                            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{member.bio}</p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2 ml-4">
-                          <button
-                            type="button"
-                            onClick={() => editMember(member)}
-                            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMember(member)}
-                            className="text-red-600 hover:text-red-900 text-sm font-medium"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -40,7 +40,12 @@ async function sendJson(path, method = 'GET', token, body) {
     );
   }
 
-  const data = await res.json().catch(() => ({}));
+  const contentType = res.headers.get('content-type') || '';
+  let data = {};
+
+  if (contentType.includes('application/json')) {
+    data = await res.json().catch(() => ({}));
+  }
 
   if (!res.ok) {
     clearSavedTokenIfUnauthorized(res.status);
@@ -60,7 +65,12 @@ async function sendFormData(path, token, formData) {
     body: formData,
   });
 
-  const data = await res.json().catch(() => ({}));
+  const contentType = res.headers.get('content-type') || '';
+  let data = {};
+  if (contentType.includes('application/json')) {
+    data = await res.json().catch(() => ({}));
+  }
+
   if (!res.ok) {
     clearSavedTokenIfUnauthorized(res.status);
     throw new ApiError(data.message || 'Upload failed', res.status, data);
@@ -190,4 +200,16 @@ export async function updateChurchPastor(token, id, payload) {
 
 export async function deleteChurchPastor(token, id) {
   return sendJson(`/church-pastors/${id}`, 'DELETE', token);
+}
+
+export async function fetchAllRegisteredMembers(token) {
+  return sendJson('/admin/members/all', 'GET', token);
+}
+
+export async function updateRegisteredMemberStatus(token, id, status) {
+  return sendJson(`/admin/members/${id}/status`, 'PUT', token, { status });
+}
+
+export async function deleteRegisteredMember(token, id) {
+  return sendJson(`/admin/members/${id}`, 'DELETE', token);
 }
