@@ -157,7 +157,12 @@ function getBaseUrl(req) {
 
   const protocol = getProtocol(req);
   const host = getHost(req);
-  return `${protocol}://${host}`;
+  const hostOnly = host ? host.split(':')[0].toLowerCase() : '';
+
+  // Force HTTPS for the known production domain even if the internal request
+  // arrives over HTTP from a proxy or load balancer.
+  const effectiveProtocol = hostOnly.includes('nuhvin.com') ? 'https' : protocol;
+  return `${effectiveProtocol}://${host}`;
 }
 
 function sanitizeDate(dateStr) {
@@ -1127,7 +1132,8 @@ app.post('/api/upload', authenticateToken, upload.single('file'), async (req, re
     }
 
     const baseUrl = getBaseUrl(req);
-    const url = `${baseUrl}/uploads/${req.file.filename}`;
+    const rawUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    const url = normalizeStoredUrl(rawUrl);
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
   } catch (error) {
@@ -1143,7 +1149,8 @@ app.post('/api/upload-public', upload.single('file'), async (req, res) => {
     }
 
     const baseUrl = getBaseUrl(req);
-    const url = `${baseUrl}/uploads/${req.file.filename}`;
+    const rawUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    const url = normalizeStoredUrl(rawUrl);
     await pool.query('INSERT INTO uploads (filename, url) VALUES (?, ?)', [req.file.filename, url]);
     res.json({ message: 'File uploaded', url });
   } catch (error) {
