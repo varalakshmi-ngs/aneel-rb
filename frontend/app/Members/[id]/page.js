@@ -21,6 +21,7 @@ export default function MemberProfilePage() {
         const res = await fetch(`${API_BASE}/members/${params.id}`);
         if (!res.ok) throw new Error('Member not found');
         const data = await res.json();
+        console.log('Member profile fetched:', data);
         setMember(data);
       } catch (err) {
         setError(err.message);

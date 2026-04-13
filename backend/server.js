@@ -1454,6 +1454,15 @@ app.get('/api/members/:id', async (req, res) => {
     // Fetch church records
     const [churchRows] = await pool.query('SELECT * FROM member_church_records WHERE member_id = ?', [id]);
     member.church_records = churchRows.length > 0 ? churchRows[0] : null;
+
+    console.log(`GET /api/members/${id} response:`, {
+      id: member.id,
+      dob: member.dob,
+      status: member.status,
+      church_records: member.church_records,
+      spouse: member.spouse ? { id: member.spouse.id, dob: member.spouse.dob, marriage_date: member.spouse.marriage_date } : null,
+      children: member.children?.map((c) => ({ id: c.id, dob: c.dob })) || []
+    });
     
     res.json(member);
   } catch (error) {
