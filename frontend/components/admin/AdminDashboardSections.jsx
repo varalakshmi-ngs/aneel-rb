@@ -626,6 +626,8 @@ export function MembersSection({
 }
 
 export function UploadsSection({ uploads, selectedFile, setSelectedFile, handleFileUpload }) {
+  const uploadsList = Array.isArray(uploads) ? uploads : [];
+
   return (
     <div>
       <div className="bg-white shadow rounded-lg">
@@ -652,10 +654,10 @@ export function UploadsSection({ uploads, selectedFile, setSelectedFile, handleF
           <div className="mt-8">
             <h4 className="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {uploads.length === 0 ? (
+              {uploadsList.length === 0 ? (
                 <p className="text-sm text-gray-500 col-span-full">No files uploaded yet.</p>
               ) : (
-                uploads.map((upload) => (
+                uploadsList.map((upload) => (
                   <div key={upload.id} className="border border-gray-200 rounded-md p-4">
                     <img
                       src={upload.url}
