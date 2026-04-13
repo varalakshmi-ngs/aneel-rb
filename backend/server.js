@@ -1483,6 +1483,32 @@ app.put('/api/members/:id', authenticateToken, upload.fields([
       return res.status(403).json({ message: 'Unauthorized to update this profile' });
     }
 
+    const cleanDob = sanitizeDate(dob);
+    const cleanSpouseDob = sanitizeDate(spouse_dob);
+    const cleanMarriageDate = sanitizeDate(marriage_date);
+    const cleanBaptismDate = sanitizeDate(baptism_date);
+    const cleanConfirmationDate = sanitizeDate(confirmation_date);
+    const cleanJoiningDate = sanitizeDate(joining_date);
+
+    const parsedChildren = typeof children === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(children);
+          } catch (err) {
+            console.error('Invalid children JSON on update:', err);
+            return null;
+          }
+        })()
+      : children;
+
+    if (!cleanDob) {
+      return res.status(400).json({ message: 'Valid date of birth is required' });
+    }
+
+    if (marital_status === 'Married' && (!spouse_first_name || !spouse_surname || !cleanSpouseDob)) {
+      return res.status(400).json({ message: 'Spouse name and valid spouse DOB are required for married members' });
+    }
+
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -1495,7 +1521,7 @@ app.put('/api/members/:id', authenticateToken, upload.fields([
     await connection.query(
       `UPDATE registered_members SET first_name = ?, surname = ?, gender = ?, dob = ?, photo_url = ?, marital_status = ?
        WHERE id = ?`,
-      [first_name, surname, gender, dob, profile_photo_url, marital_status, id]
+      [first_name, surname, gender, cleanDob, profile_photo_url, marital_status, id]
     );
 
     // 2. Update Spouse Info
@@ -1512,13 +1538,13 @@ app.put('/api/members/:id', authenticateToken, upload.fields([
         await connection.query(
           `UPDATE member_spouses SET first_name = ?, surname = ?, dob = ?, photo_url = ?, marriage_date = ?
            WHERE member_id = ?`,
-          [spouse_first_name, spouse_surname, spouse_dob, spouse_photo_url, marriage_date || null, id]
+          [spouse_first_name, spouse_surname, cleanSpouseDob, spouse_photo_url, cleanMarriageDate, id]
         );
       } else {
         await connection.query(
           `INSERT INTO member_spouses (member_id, first_name, surname, dob, photo_url, marriage_date)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [id, spouse_first_name, spouse_surname, spouse_dob, spouse_photo_url, marriage_date || null]
+          [id, spouse_first_name, spouse_surname, cleanSpouseDob, spouse_photo_url, cleanMarriageDate]
         );
       }
     } else {
@@ -1526,29 +1552,26 @@ app.put('/api/members/:id', authenticateToken, upload.fields([
       await connection.query('DELETE FROM member_spouses WHERE member_id = ?', [id]);
     }
 
-    // 3. Update Children (Delete and Re-insert is often cleaner for list updates)
-    if (marital_status === 'Married' && children) {
+    // 3. Update Children (Delete and re-insert current values)
+    if (marital_status === 'Married' && parsedChildren) {
         await connection.query('DELETE FROM member_children WHERE member_id = ?', [id]);
-        try {
-            const parsedChildren = JSON.parse(children);
-            if (Array.isArray(parsedChildren)) {
-                let childPhotoIndex = 0;
-                for (const child of parsedChildren) {
-                    let child_photo_url = child.photo_url || null;
-                    if (child.has_photo && req.files && req.files['child_photos'] && req.files['child_photos'][childPhotoIndex]) {
-                        child_photo_url = `/uploads/${req.files['child_photos'][childPhotoIndex].filename}`;
-                        childPhotoIndex++;
-                    }
-                    if (child.name && child.gender && child.dob) {
-                        await connection.query(
-                            `INSERT INTO member_children (member_id, name, gender, dob, photo_url) VALUES (?, ?, ?, ?, ?)`,
-                            [id, child.name, child.gender, child.dob, child_photo_url]
-                        );
-                    }
+
+        if (Array.isArray(parsedChildren)) {
+            let childPhotoIndex = 0;
+            for (const child of parsedChildren) {
+                const cleanChildDob = sanitizeDate(child.dob);
+                let child_photo_url = child.photo_url || null;
+                if (child.has_photo && req.files && req.files['child_photos'] && req.files['child_photos'][childPhotoIndex]) {
+                    child_photo_url = `/uploads/${req.files['child_photos'][childPhotoIndex].filename}`;
+                    childPhotoIndex++;
+                }
+                if (child.name && child.gender && cleanChildDob) {
+                    await connection.query(
+                        `INSERT INTO member_children (member_id, name, gender, dob, photo_url) VALUES (?, ?, ?, ?, ?)`,
+                        [id, child.name, child.gender, cleanChildDob, child_photo_url]
+                    );
                 }
             }
-        } catch (e) {
-            console.error('Error updating children data', e);
         }
     } else {
         await connection.query('DELETE FROM member_children WHERE member_id = ?', [id]);
